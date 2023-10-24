@@ -18,8 +18,6 @@ export class Document extends AstNode {
   override _writeWikimark(out: WikimarkWriter): void {
     if (this.children.length === 0) return;
     out.writeNewline();
-    for (const child of this.children) {
-      child._writeWikimark(out);
-    }
+    super._writeWikimark(out);
   }
 }
