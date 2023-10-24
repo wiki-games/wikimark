@@ -1,0 +1,19 @@
+{
+  "name": "wikimark",
+  "version": "0.0.1",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "Pasha Stetsenko",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "dependencies": {
+    "devlop": "^1.1.0"
+  }
+}
