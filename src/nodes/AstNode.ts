@@ -75,7 +75,11 @@ export abstract class AstNode {
     return this.type;
   }
 
-  _writeWikimark(out: WikimarkWriter): void {}
+  _writeWikimark(out: WikimarkWriter): void {
+    for (const child of this.children) {
+      child._writeWikimark(out);
+    }
+  }
 
   //------------------------------------------------------------------------------------
   // Node tree construction

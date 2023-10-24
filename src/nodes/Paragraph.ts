@@ -16,9 +16,7 @@ export class Paragraph extends AstNode {
     if (!this.isFirstChild) {
       out.writeNewline();
     }
-    for (const child of this.children) {
-      child._writeWikimark(out);
-    }
+    super._writeWikimark(out);
     out.writeNewline();
   }
 }

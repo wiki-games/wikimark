@@ -1,6 +1,7 @@
 export { AstNode } from "./nodes/AstNode.js";
 export { Document } from "./nodes/Document.js";
 export { Header } from "./nodes/Header.js";
+export { Italic } from "./nodes/Italic.js";
 export { Paragraph } from "./nodes/Paragraph.js";
 export { Text } from "./nodes/Text.js";
 

@@ -38,9 +38,7 @@ export class Header extends AstNode {
     }
     prefix.push(codes.space);
     out.addLinePrefix(prefix);
-    for (const child of this.children) {
-      child._writeWikimark(out);
-    }
+    super._writeWikimark(out);
     out.removeLinePrefix(prefix);
     out.writeNewline();
   }
