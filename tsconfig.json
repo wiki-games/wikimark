@@ -1,0 +1,16 @@
+// See https://aka.ms/tsconfig
+{
+  "compilerOptions": {
+    "outDir": "build",
+    "target": "es2016",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}
