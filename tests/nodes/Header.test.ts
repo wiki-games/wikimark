@@ -8,7 +8,7 @@ test("Simple header", () => {
   expect(ast.toDebugTree()).toBe(
     [
       "Document:", //
-      "  Header.1:",
+      "  Header[1]:",
       "    Text: Header 1",
       "",
     ].join("\n")
@@ -38,7 +38,7 @@ test("Header and paragraphs", () => {
       "Document:",
       "  Paragraph:",
       "    Text: First paragraph",
-      "  Header.2:",
+      "  Header[2]:",
       "    Text: Some header",
       "  Paragraph:",
       "    Text: Last paragraph",
@@ -67,11 +67,11 @@ test("Multiple headers", () => {
   expect(ast.toDebugTree()).toBe(
     [
       "Document:",
-      "  Header.2:",
+      "  Header[2]:",
       "    Text: First header",
-      "  Header.4:",
+      "  Header[4]:",
       "    Text: Second header",
-      "  Header.6:",
+      "  Header[6]:",
       "    Text: Third header",
       "",
     ].join("\n")
@@ -79,19 +79,26 @@ test("Multiple headers", () => {
 });
 
 test("Header with hash signs", () => {
-  const ast = new Document([new Header(1, [new Text("# one ## two #")])]);
+  const ast = new Document([
+    new Header(1, [new Text("# one ## two #")]),
+    new Header(2, [new Text("- also header")]),
+  ]);
   expect(ast.toWikimark()).toBe(
     [
       "", //
-      "# \\# one ## two #",
+      "# # one ## two #",
       "",
+      "## - also header",
+      ""
     ].join("\n")
   );
   expect(ast.toDebugTree()).toBe(
     [
       "Document:", //
-      "  Header.1:",
+      "  Header[1]:",
       "    Text: # one ## two #",
+      "  Header[2]:",
+      "    Text: - also header",
       "",
     ].join("\n")
   );

@@ -38,7 +38,7 @@ export class Text extends AstNode {
     }
   }
 
-  override _debugTitle(): string {
+  override toString(): string {
     return "Text: " + this.text;
   }
 }

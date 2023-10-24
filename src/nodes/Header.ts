@@ -1,5 +1,5 @@
 import { nodeTypes } from "../nodes.js";
-import { Code, codes } from "../utils/codes.js";
+import { codes } from "../utils/codes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
@@ -19,8 +19,8 @@ export class Header extends AstNode {
     return node.isInline;
   }
 
-  override _debugTitle(): string {
-    return this.type + "." + this.level.toString();
+  override toString(): string {
+    return `${this.type}[${this.level}]`;
   }
 
   override _writeWikimark(out: WikimarkWriter): void {
@@ -32,14 +32,11 @@ export class Header extends AstNode {
       out.writeNewline();
       out.writeNewline();
     }
-    const prefix: Array<Code> = [];
     for (let i = 0; i < this.level; i++) {
-      prefix.push(codes.numberSign);
+      out.write(codes.numberSign);
     }
-    prefix.push(codes.space);
-    out.addLinePrefix(prefix);
+    out.write(codes.space);
     super._writeWikimark(out);
-    out.removeLinePrefix(prefix);
     out.writeNewline();
   }
 }

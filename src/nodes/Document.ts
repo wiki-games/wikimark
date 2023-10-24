@@ -4,6 +4,15 @@ import { AstNode } from "./AstNode.js";
 
 /**
  * [Document] is a root class in an AST tree.
+ * 
+ * A Document typically consists of a series of block nodes, such as
+ * 
+ *     Document:
+ *       Header.1
+ *       Paragraph
+ *       Paragraph
+ *       Header.2
+ *       ...
  */
 export class Document extends AstNode {
   constructor(children?: Array<AstNode>) {

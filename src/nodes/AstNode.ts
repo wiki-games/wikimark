@@ -58,7 +58,7 @@ export abstract class AstNode {
   }
 
   toDebugTree(indent: string = ""): string {
-    let out = indent + this._debugTitle();
+    let out = indent + this.toString();
     if (this.children.length > 0) {
       out += ":\n";
       const child_indent = indent + "  ";
@@ -71,7 +71,7 @@ export abstract class AstNode {
     return out;
   }
 
-  _debugTitle(): string {
+  toString(): string {
     return this.type;
   }
 
@@ -90,13 +90,25 @@ export abstract class AstNode {
   }
 
   addChild(node: AstNode): void {
-    assert(this.allowsChild(node));
+    assert(
+      this.allowsChild(node),
+      `Node ${node} is not allowed as a child of ${this}`
+    );
+    assert(
+      node.parent === null,
+      `Node ${node} already belongs to ${node.parent}`
+    );
     this.children.push(node);
     node.parent = this;
   }
 
   removeChild(node: AstNode): void {
-    this.children = this.children.filter((n) => n !== node);
+    assert(
+      node.parent === this,
+      `Cannot remove ${node}, it does not belong to ${this}`
+    );
+    const i = this.children.findIndex((n) => n === node);
+    this.children.splice(i, 1);
     node.parent = null;
   }
 
