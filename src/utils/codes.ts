@@ -8,7 +8,7 @@ export const codes = {
   eof: -3, //              <end of file>
   horizontalTab: -2, //    <single-space tab character: \t>
   virtualSpace: -1, //     <extra spaces created by a tab character>
-  
+
   space: 32, //            <space>
   exclamationMark: 33, //  !
   quoteDouble: 34, //      "
@@ -43,7 +43,7 @@ export const codes = {
   braceRight: 125, //      }
   tilde: 126, //           ~
   nbsp: 160, //            <non-breaking space>
-  
+
   digit0: 48,
   digit1: 49,
   digit2: 50,
@@ -107,5 +107,13 @@ export const codes = {
   lowercaseY: 121,
   lowercaseZ: 122,
 
-  replacementCharacter: 65533, // �
+  byteOrderMark: 0xfeff,
+  replacementCharacter: 0xfffd, // �
+
+  asciiTab: 0x09,
+  asciiLineFeed: 0x0a,
+  asciiCarriageReturn: 0x0d,
+  asciiC0End: 0x20, // exclusive
+  asciiC1Start: 0x7f, // inclusive
+  asciiC1End: 0xa0, // exclusive
 } as const;
