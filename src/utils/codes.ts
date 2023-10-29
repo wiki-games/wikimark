@@ -9,6 +9,8 @@ export const codes = {
   horizontalTab: -2, //    <single-space tab character: \t>
   virtualSpace: -1, //     <extra spaces created by a tab character>
 
+  lineFeed: 0x0a,
+  carriageReturn: 0x0d,
   space: 32, //            <space>
   exclamationMark: 33, //  !
   quoteDouble: 34, //      "
@@ -117,3 +119,30 @@ export const codes = {
   asciiC1Start: 0x7f, // inclusive
   asciiC1End: 0xa0, // exclusive
 } as const;
+
+export function isAlphaNum(code: Code): boolean {
+  return (
+    (code >= codes.digit0 && code <= codes.digit9) ||
+    (code >= codes.lowercaseA && code <= codes.lowercaseZ) ||
+    (code >= codes.uppercaseA && code <= codes.uppercaseZ)
+  );
+}
+
+export function isAlpha(code: Code): boolean {
+  return (
+    (code >= codes.lowercaseA && code <= codes.lowercaseZ) ||
+    (code >= codes.uppercaseA && code <= codes.uppercaseZ)
+  );
+}
+
+export function isDigit(code: Code): boolean {
+  return code >= codes.digit0 && code <= codes.digit9;
+}
+
+export function isHexDigit(code: Code): boolean {
+  return (
+    (code >= codes.digit0 && code <= codes.digit9) ||
+    (code >= codes.lowercaseA && code <= codes.lowercaseF) ||
+    (code >= codes.uppercaseA && code <= codes.uppercaseF)
+  );
+}
