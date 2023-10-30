@@ -18,9 +18,9 @@ export const tokens = {
   hashSign: "hashSign",
   semicolon: "semicolon",
   equal: "equal",
-  htmlCommentStart: "htmlCommentStart",
-  htmlCommentBody: "htmlCommentBody",
-  htmlCommentEnd: "htmlCommentEnd",
+  commentStart: "htmlCommentStart",
+  commentBody: "htmlCommentBody",
+  commentEnd: "htmlCommentEnd",
   htmlTagStart: "htmlTagStart",
   htmlTagEnd: "htmlTagEnd",
   htmlTagName: "htmlTagName",
@@ -30,9 +30,12 @@ export const tokens = {
   htmlEntity: "htmlEntity",
 } as const;
 
+/** Location consists of a line number, and a column number, both 1-based. */
+type Location = [number, number];
+
 export type Token = {
   type: string;
   text: string;
-  start: [number, number];
-  end: [number, number];
+  start: Location;
+  end: Location;
 };

@@ -1,4 +1,10 @@
-import { codes, isAlpha, isAlphaNum, isDigit, isHexDigit } from "../utils/codes.js";
+import {
+  codes,
+  isAlpha,
+  isAlphaNum,
+  isDigit,
+  isHexDigit,
+} from "../utils/codes.js";
 import { tokens, Token } from "./tokens.js";
 import { ok as assert } from "devlop";
 
@@ -15,11 +21,15 @@ class Lexer {
     this.position = 0;
     this.lineNumber = 1;
     this.lineStart = 0;
+    this.mode_main = () => this.mainMode();
+    this.mode_html = () => this.htmlTagMode();
   }
 
   private readonly text: string;
   private readonly tokens: Array<Token>;
   private readonly modes: Array<() => boolean>;
+  private readonly mode_main: () => boolean;
+  private readonly mode_html: () => boolean;
 
   /** Current parsing position, an offset within [text]. */
   private position: number;
@@ -37,17 +47,12 @@ class Lexer {
   parse(): Array<Token> {
     assert(this.position === 0);
     assert(this.lineNumber === 1 && this.lineStart === 0);
-    this.pushMode(this.mainMode);
+    this.pushMode(this.mode_main);
     while (!this.atEof) {
       const mode = this.modes[this.modes.length - 1];
       const ok = mode();
-      if (!ok) {
-        throw Error(
-          `Invalid character at ${this.location}: '${this.text[this.position]}'`
-        );
-      }
+      assert(ok);
     }
-    this.popMode(this.mainMode);
     return this.tokens;
   }
 
@@ -64,12 +69,9 @@ class Lexer {
   }
 
   private codeAt(delta: number): number {
+    assert(delta >= 0);
     const i = this.position + delta;
-    return i < 0
-      ? codes.sof
-      : i < this.text.length
-      ? this.text.charCodeAt(i)
-      : codes.eof;
+    return i < this.text.length ? this.text.charCodeAt(i) : codes.eof;
   }
 
   private pushMode(mode: () => boolean): boolean {
@@ -94,7 +96,7 @@ class Lexer {
       this.matchPlainText() ||
       this.matchHtmlComment() ||
       this.matchHtmlEntity() ||
-      (this.matchHtmlTagStart() && this.pushMode(this.htmlTagMode)) ||
+      (this.matchHtmlTagStart() && this.pushMode(this.mode_html)) ||
       this.matchSpecialCharacterRuns() ||
       this.matchSpecialCharactersSingle() ||
       this.matchInvalid()
@@ -108,7 +110,7 @@ class Lexer {
       this.matchBareWord() ||
       this.matchEqualSign() ||
       this.matchQuotedString() ||
-      (this.matchHtmlTagEnd() && this.popMode(this.htmlTagMode)) ||
+      (this.matchHtmlTagEnd() && this.popMode(this.mode_html)) ||
       this.matchHtmlInvalidText()
     );
   }
@@ -178,32 +180,49 @@ class Lexer {
       const loc1 = this.location;
       const pos1 = this.position;
       this.tokens.push({
-        type: tokens.htmlCommentStart,
+        type: tokens.commentStart,
         text: "<!--",
         start: loc0,
         end: loc1,
       });
+      let text = "";
       while (!this.atEof) {
-        if (this.text.substring(this.position, this.position + 3) === "-->") {
+        const code0 = this.codeAt(0);
+        if (
+          code0 === codes.hyphen &&
+          this.text.substring(this.position, this.position + 3) === "-->"
+        ) {
           break;
         }
-        this.position++;
+        if (code0 === codes.carriageReturn || code0 === codes.lineFeed) {
+          const code1 = this.codeAt(1);
+          this.position +=
+            code0 === codes.carriageReturn && code1 === codes.lineFeed ? 2 : 1;
+          this.lineNumber++;
+          this.lineStart = this.position;
+          text += "\n";
+        } else {
+          text += String.fromCharCode(code0);
+          this.position++;
+        }
       }
       const loc2 = this.location;
-      this.tokens.push({
-        type: tokens.htmlCommentBody,
-        text: this.text.substring(pos1, this.position),
-        start: loc1,
-        end: loc2,
-      });
-      if (!this.atEof) {
+      if (text) {
         this.tokens.push({
-          type: tokens.htmlCommentEnd,
+          type: tokens.commentBody,
+          text: text,
+          start: loc1,
+          end: loc2,
+        });
+      }
+      if (!this.atEof) {
+        this.position += 3;
+        this.tokens.push({
+          type: tokens.commentEnd,
           text: "-->",
           start: loc2,
           end: this.location,
         });
-        this.position += 3;
       }
       return true;
     }
@@ -217,10 +236,12 @@ class Lexer {
       this.position += this.codeAt(1) === codes.slash ? 2 : 1;
       const loc1 = this.location;
       const pos1 = this.position;
-      while (isAlphaNum(this.code)) {
-        this.position++;
+      if (isAlpha(this.code)) {
+        while (isAlphaNum(this.code)) {
+          this.position++;
+        }
       }
-      if (pos1 > pos0) {
+      if (this.position > pos1) {
         this.tokens.push({
           type: tokens.htmlTagStart,
           text: pos1 - pos0 === 1 ? "<" : "</",
@@ -296,27 +317,15 @@ class Lexer {
   }
 
   private matchInvalid(): boolean {
-    const code0 = this.code;
-    if (
-      (code0 < codes.asciiC0End &&
-        !(
-          code0 === codes.asciiLineFeed ||
-          code0 === codes.asciiCarriageReturn ||
-          code0 === codes.asciiTab
-        )) ||
-      (code0 >= codes.asciiC1Start && code0 < codes.asciiC1End)
-    ) {
-      const loc0 = this.location;
-      this.position++;
-      this.tokens.push({
-        type: tokens.text,
-        text: "\ufffd",
-        start: loc0,
-        end: this.location,
-      });
-      return true;
-    }
-    return false;
+    const loc0 = this.location;
+    this.position++;
+    this.tokens.push({
+      type: tokens.text,
+      text: "\ufffd",
+      start: loc0,
+      end: this.location,
+    });
+    return true;
   }
 
   private matchSpecialCharacterRuns(): boolean {
