@@ -317,3 +317,56 @@ describe("Html tags", () => {
     ]);
   });
 });
+
+describe("Special HTML tags", () => {
+  test("<pre>", () => {
+    expect(tokenize("<pre>\none\n{{two}}\n<!--three-->\n</pre>")).toEqual([
+      { type: tokens.htmlTagStart, text: "<", start: [1, 1], end: [1, 2] },
+      { type: tokens.htmlTagName, text: "pre", start: [1, 2], end: [1, 5] },
+      { type: tokens.htmlTagEnd, text: ">", start: [1, 5], end: [1, 6] },
+      {
+        type: tokens.text,
+        text: "\none\n{{two}}\n<!--three-->\n",
+        start: [1, 6],
+        end: [5, 1],
+      },
+      { type: tokens.htmlTagStart, text: "</", start: [5, 1], end: [5, 3] },
+      { type: tokens.htmlTagName, text: "pre", start: [5, 3], end: [5, 6] },
+      { type: tokens.htmlTagEnd, text: ">", start: [5, 6], end: [5, 7] },
+    ]);
+  });
+
+  test("<syntaxhighlight>", () => {
+    expect(
+      tokenize(
+        "<syntaxhighlight lang=py>\n" + //
+          "  </pre>\n" +
+          "</syntaxhighlight>"
+      )
+    ).toEqual([
+      { type: tokens.htmlTagStart, text: "<", start: [1, 1], end: [1, 2] },
+      {
+        type: tokens.htmlTagName,
+        text: "syntaxhighlight",
+        start: [1, 2],
+        end: [1, 17],
+      },
+      { type: tokens.whitespace, text: " ", start: [1, 17], end: [1, 18] },
+      { type: tokens.htmlBareWord, text: "lang", start: [1, 18], end: [1, 22] },
+      { type: tokens.equal, text: "=", start: [1, 22], end: [1, 23] },
+      { type: tokens.htmlBareWord, text: "py", start: [1, 23], end: [1, 25] },
+      { type: tokens.htmlTagEnd, text: ">", start: [1, 25], end: [1, 26] },
+      { type: tokens.text, text: "\n  ", start: [1, 26], end: [2, 3] },
+      { type: tokens.leftAngleBracket, text: "<", start: [2, 3], end: [2, 4] },
+      { type: tokens.text, text: "/pre>\n", start: [2, 4], end: [3, 1] },
+      { type: tokens.htmlTagStart, text: "</", start: [3, 1], end: [3, 3] },
+      {
+        type: tokens.htmlTagName,
+        text: "syntaxhighlight",
+        start: [3, 3],
+        end: [3, 18],
+      },
+      { type: tokens.htmlTagEnd, text: ">", start: [3, 18], end: [3, 19] },
+    ]);
+  });
+});

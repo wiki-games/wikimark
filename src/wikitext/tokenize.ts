@@ -21,8 +21,10 @@ class Lexer {
     this.position = 0;
     this.lineNumber = 1;
     this.lineStart = 0;
+    this.expectClosingTag = null;
     this.mode_main = () => this.mainMode();
     this.mode_html = () => this.htmlTagMode();
+    this.mode_raw = () => this.rawMode();
   }
 
   private readonly text: string;
@@ -30,6 +32,8 @@ class Lexer {
   private readonly modes: Array<() => boolean>;
   private readonly mode_main: () => boolean;
   private readonly mode_html: () => boolean;
+  private readonly mode_raw: () => boolean;
+  private expectClosingTag: string | null;
 
   /** Current parsing position, an offset within [text]. */
   private position: number;
@@ -97,8 +101,8 @@ class Lexer {
       this.matchHtmlComment() ||
       this.matchHtmlEntity() ||
       (this.matchHtmlTagStart() && this.pushMode(this.mode_html)) ||
-      this.matchSpecialCharacterRuns() ||
-      this.matchSpecialCharactersSingle() ||
+      this.matchSpecialCharacterRun() ||
+      this.matchSpecialCharacterSingle() ||
       this.matchInvalid()
     );
   }
@@ -110,8 +114,18 @@ class Lexer {
       this.matchBareWord() ||
       this.matchEqualSign() ||
       this.matchQuotedString() ||
-      (this.matchHtmlTagEnd() && this.popMode(this.mode_html)) ||
+      (this.matchHtmlTagEnd() &&
+        this.popMode(this.mode_html) &&
+        this.maybeEnterSpecialHtmlMode()) ||
       this.matchHtmlInvalidText()
+    );
+  }
+
+  private rawMode(): boolean {
+    return (
+      (this.matchClosingHtmlTag() && this.popMode(this.mode_raw)) ||
+      this.matchRawText() ||
+      this.matchSpecialCharacterSingle()
     );
   }
 
@@ -242,15 +256,17 @@ class Lexer {
         }
       }
       if (this.position > pos1) {
+        const isClosing = pos1 - pos0 === 2;
+        const tag = this.text.substring(pos1, this.position);
         this.tokens.push({
           type: tokens.htmlTagStart,
-          text: pos1 - pos0 === 1 ? "<" : "</",
+          text: isClosing ? "</" : "<",
           start: loc0,
           end: loc1,
         });
         this.tokens.push({
           type: tokens.htmlTagName,
-          text: this.text.substring(pos1, this.position),
+          text: tag,
           start: loc1,
           end: this.location,
         });
@@ -328,7 +344,7 @@ class Lexer {
     return true;
   }
 
-  private matchSpecialCharacterRuns(): boolean {
+  private matchSpecialCharacterRun(): boolean {
     const code0 = this.code;
     if (SPECIAL_CHARACTER_RUNS.has(code0)) {
       const loc0 = this.location;
@@ -348,7 +364,7 @@ class Lexer {
     return false;
   }
 
-  private matchSpecialCharactersSingle(): boolean {
+  private matchSpecialCharacterSingle(): boolean {
     const code0 = this.code;
     if (SPECIAL_CHARACTERS_SINGLE.has(code0)) {
       const loc0 = this.location;
@@ -522,6 +538,107 @@ class Lexer {
         return true;
       }
       this.position = pos0;
+    }
+    return false;
+  }
+
+  /**
+   * This method is called immediately after exiting an HtmlTag mode, and it checks
+   * whether, based on the name of the html tag, we need to enter a special parsing
+   * mode. Always returns true.
+   */
+  private maybeEnterSpecialHtmlMode(): boolean {
+    let i = this.tokens.length - 1;
+    while (this.tokens[i].type !== tokens.htmlTagName) {
+      i--;
+    }
+    const tag = this.tokens[i].text.toLowerCase();
+    if (tag === "pre" || tag === "syntaxhighlight") {
+      this.pushMode(this.mode_raw);
+      this.expectClosingTag = tag;
+    }
+    return true;
+  }
+
+  private matchClosingHtmlTag(): boolean {
+    assert(this.expectClosingTag !== null);
+    if (
+      this.codeAt(0) === codes.lessThanSign &&
+      this.codeAt(1) === codes.slash
+    ) {
+      const loc0 = this.location;
+      this.position += 2;
+      const pos1 = this.position;
+      const loc1 = this.location;
+      while (isAlphaNum(this.code)) {
+        this.position++;
+      }
+      const closingTag = this.text.substring(pos1, this.position).toLowerCase();
+      if (closingTag === this.expectClosingTag) {
+        const loc2 = this.location;
+        const hasWhitespace = this.matchWhitespace();
+        const whitespaceToken = hasWhitespace ? this.tokens.pop() : null;
+        const loc3 = this.location;
+        if (this.codeAt(0) === codes.greaterThanSign) {
+          this.tokens.push({
+            type: tokens.htmlTagStart,
+            text: "</",
+            start: loc0,
+            end: loc1,
+          });
+          this.tokens.push({
+            type: tokens.htmlTagName,
+            text: closingTag,
+            start: loc1,
+            end: loc2,
+          });
+          if (hasWhitespace) {
+            this.tokens.push(whitespaceToken!);
+          }
+          this.position++;
+          this.tokens.push({
+            type: tokens.htmlTagEnd,
+            text: ">",
+            start: loc3,
+            end: this.location,
+          });
+          this.expectClosingTag = null;
+          return true;
+        }
+      }
+      this.position = pos1 - 2;
+    }
+    return false;
+  }
+
+  private matchRawText(): boolean {
+    const loc0 = this.location;
+    let text = "";
+    while (!this.atEof) {
+      const code0 = this.codeAt(0);
+      if (code0 === codes.lessThanSign && this.codeAt(1) === codes.slash) {
+        break;
+      }
+      if (code0 === codes.carriageReturn || code0 === codes.lineFeed) {
+        const code1 = this.codeAt(1);
+        this.position +=
+          code0 === codes.carriageReturn && code1 === codes.lineFeed ? 2 : 1;
+        this.lineNumber++;
+        this.lineStart = this.position;
+        text += "\n";
+      } else {
+        text += String.fromCharCode(code0);
+        this.position++;
+      }
+    }
+    if (text) {
+      this.tokens.push({
+        type: tokens.text,
+        text: text,
+        start: loc0,
+        end: this.location,
+      });
+      return true;
     }
     return false;
   }
