@@ -1,7 +1,6 @@
 import { expect, test, describe } from "vitest";
 import { parse } from "../../src/wikitext/parse.js";
 import {
-  AstNode,
   CodeBlock,
   Document,
   Header,
@@ -35,7 +34,7 @@ describe("Paragraphs", () => {
         new Paragraph([
           new Text(
             // TODO: fix extra spaces
-            "This paragraph contains multiple lines even if it's just  one sentence. "
+            "This paragraph contains multiple lines even if it's just  one sentence."
           ),
         ]),
       ])
@@ -53,11 +52,11 @@ describe("Paragraphs", () => {
       )
     ).toEqual(
       new Document([
-        new Paragraph([new Text("Paragraph one. ")]),
+        new Paragraph([new Text("Paragraph one.")]),
         new Paragraph([
-          new Text("Another paragraph that may span several lines. "),
+          new Text("Another paragraph that may span several lines."),
         ]),
-        new Paragraph([new Text("Third paragraph, just for fun. ")]),
+        new Paragraph([new Text("Third paragraph, just for fun.")]),
       ])
     );
   });
@@ -78,7 +77,7 @@ describe("Headers", () => {
 
   test("Not a header", () => {
     expect(parse("==\n")).toEqual(
-      new Document([new Paragraph([new Text("== ")])])
+      new Document([new Paragraph([new Text("==")])])
     );
   });
 
@@ -109,7 +108,7 @@ describe("Headers", () => {
   test("Header terminates a paragraph", () => {
     expect(parse("Hello,\n==world==\n!")).toEqual(
       new Document([
-        new Paragraph([new Text("Hello, ")]),
+        new Paragraph([new Text("Hello,")]),
         new Header(2, [new Text("world")]),
         new Paragraph([new Text("!")]),
       ])

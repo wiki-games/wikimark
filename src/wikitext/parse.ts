@@ -303,7 +303,9 @@ class Parser {
 
   private parseParagraph(parent: AstNode): boolean {
     let node = parent.lastChild;
-    if (node === null || node.type !== nodeTypes.paragraph || !node.isOpen) {
+    if (node !== null && node.type === nodeTypes.paragraph && node.isOpen) {
+      this.addTextChild(node, " ");
+    } else {
       node?.setOpen(false);
       node = new Paragraph();
       node.setOpen(true);
@@ -346,7 +348,7 @@ class Parser {
         ) {
           i1--;
         }
-        for (let i = i0; i<  i1; i++) {
+        for (let i = i0; i < i1; i++) {
           middleTokens.push(this.tokens[i]);
         }
         if (token1.text.length > level) {
@@ -382,6 +384,11 @@ class Parser {
   // case the parser is not allowed to modify the current [position].
   //------------------------------------------------------------------------------------
 
+  /**
+   * Parses inline content starting at the current position and until the end of line,
+   * and stores the produced nodes in [parent]. The parser stops when it reaches an
+   * end of line, and leaves parsing position at the start of the next line.
+   */
   private parseInline(parent: AstNode): boolean {
     const pos0 = this.position;
     while (true) {
@@ -389,7 +396,6 @@ class Parser {
       if (token0 === null) break; // eof
       if (token0.type === tokens.newline) {
         this.position++;
-        this.addTextChild(parent, " ");
         break;
       }
       const ok =
