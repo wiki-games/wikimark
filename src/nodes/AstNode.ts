@@ -85,6 +85,8 @@ export abstract class AstNode {
   // Node tree construction
   //------------------------------------------------------------------------------------
 
+  private _isOpen?: boolean;
+
   allowsChild(node: AstNode): boolean {
     return true;
   }
@@ -145,5 +147,17 @@ export abstract class AstNode {
       }
     }
     return null;
+  }
+
+  get isOpen(): boolean {
+    return this._isOpen === true;
+  }
+
+  setOpen(v: boolean) {
+    if (v) {
+      this._isOpen = true;
+    } else {
+      delete this._isOpen;
+    }
   }
 }
