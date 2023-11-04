@@ -650,6 +650,7 @@ const SPECIAL_CHARACTERS_SINGLE = new Map<number, string>([
   [codes.greaterThanSign, tokens.rightAngleBracket],
   [codes.semicolon, tokens.semicolon],
   [codes.ampersand, tokens.ampersand],
+  [codes.exclamationMark, tokens.exclamation],
 ]);
 
 const SPECIAL_CHARACTER_RUNS = new Map<number, string>([

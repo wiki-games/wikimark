@@ -42,7 +42,8 @@ describe("Plain text", () => {
     expect(tokenize("Hello, world!")).toEqual([
       { type: tokens.text, text: "Hello,", start: [1, 1], end: [1, 7] },
       { type: tokens.whitespace, text: " ", start: [1, 7], end: [1, 8] },
-      { type: tokens.text, text: "world!", start: [1, 8], end: [1, 14] },
+      { type: tokens.text, text: "world", start: [1, 8], end: [1, 13] },
+      { type: tokens.exclamation, text: "!", start: [1, 13], end: [1, 14] },
     ]);
   });
 
@@ -119,7 +120,7 @@ describe("Html comments", () => {
   test("Not a comment", () => {
     expect(tokenize("<!-")).toEqual([
       { type: tokens.leftAngleBracket, text: "<", start: [1, 1], end: [1, 2] },
-      { type: tokens.text, text: "!", start: [1, 2], end: [1, 3] },
+      { type: tokens.exclamation, text: "!", start: [1, 2], end: [1, 3] },
       { type: tokens.dash, text: "-", start: [1, 3], end: [1, 4] },
     ]);
   });
@@ -367,6 +368,32 @@ describe("Special HTML tags", () => {
         end: [3, 18],
       },
       { type: tokens.htmlTagEnd, text: ">", start: [3, 18], end: [3, 19] },
+    ]);
+  });
+});
+
+describe("Templates", () => {
+  test("Simple template", () => {
+    expect(tokenize("{{Simple}}")).toEqual([
+      { type: tokens.leftBraceRun, text: "{{", start: [1, 1], end: [1, 3] },
+      { type: tokens.text, text: "Simple", start: [1, 3], end: [1, 9] },
+      { type: tokens.rightBraceRun, text: "}}", start: [1, 9], end: [1, 11] },
+    ]);
+  });
+
+  test("Template with args", () => {
+    expect(tokenize("{{Temp|| arg  = value}}")).toEqual([
+      { type: tokens.leftBraceRun, text: "{{", start: [1, 1], end: [1, 3] },
+      { type: tokens.text, text: "Temp", start: [1, 3], end: [1, 7] },
+      { type: tokens.pipe, text: "|", start: [1, 7], end: [1, 8] },
+      { type: tokens.pipe, text: "|", start: [1, 8], end: [1, 9] },
+      { type: tokens.whitespace, text: " ", start: [1, 9], end: [1, 10] },
+      { type: tokens.text, text: "arg", start: [1, 10], end: [1, 13] },
+      { type: tokens.whitespace, text: "  ", start: [1, 13], end: [1, 15] },
+      { type: tokens.equalSignsRun, text: "=", start: [1, 15], end: [1, 16] },
+      { type: tokens.whitespace, text: " ", start: [1, 16], end: [1, 17] },
+      { type: tokens.text, text: "value", start: [1, 17], end: [1, 22] },
+      { type: tokens.rightBraceRun, text: "}}", start: [1, 22], end: [1, 24] },
     ]);
   });
 });
