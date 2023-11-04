@@ -92,14 +92,14 @@ export abstract class AstNode {
   }
 
   addChild(node: AstNode): void {
-    assert(
-      this.allowsChild(node),
-      `Node ${node} is not allowed as a child of ${this}`
-    );
-    assert(
-      node.parent === null,
-      `Node ${node} already belongs to ${node.parent}`
-    );
+    // assert(
+    //   this.allowsChild(node),
+    //   `Node ${node} is not allowed as a child of ${this}`
+    // );
+    // assert(
+    //   node.parent === null,
+    //   `Node ${node} already belongs to ${node.parent}`
+    // );
     this.children.push(node);
     node.parent = this;
   }

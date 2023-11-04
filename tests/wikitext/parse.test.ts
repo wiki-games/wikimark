@@ -1,6 +1,13 @@
 import { expect, test, describe } from "vitest";
 import { parse } from "../../src/wikitext/parse.js";
-import { Document, Header, Paragraph, Text } from "../../src/nodes.js";
+import {
+  AstNode,
+  CodeBlock,
+  Document,
+  Header,
+  Paragraph,
+  Text,
+} from "../../src/nodes.js";
 
 test("Empty document", () => {
   expect(parse("")).toEqual(new Document());
@@ -148,6 +155,20 @@ describe("Headers", () => {
   test("Header is too long but still ok", () => {
     expect(parse("========== H6 ==========")).toEqual(
       new Document([new Header(6, [new Text("==== H6 ====")])])
+    );
+  });
+
+  test("Header with a comment", () => {
+    expect(parse("== Header<!--\n\n\n--> one==")).toEqual(
+      new Document([new Header(2, [new Text("Header one")])])
+    );
+  });
+
+  test.fails("Header with <pre>", () => {
+    expect(parse("== Header <pre>\nhohoho\n</pre> ==")).toEqual(
+      new Document([
+        new Header(2, [new Text("Header "), new CodeBlock("\nhohoho\n")]),
+      ])
     );
   });
 });

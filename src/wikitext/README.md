@@ -61,3 +61,5 @@ based on observation (trying various markups in Wikipedia's sandbox).
     the other delimiter become part of the header: `== H =` has text "= H".
   - If there is no equals at the end of the line, then this is not a header.
   - Max level of header is 6.
+  - A header cannot contain a newline (unless it is a part of a comment, a template,
+    or special HTML tag like `<pre>` or `<syntaxhighlight>`)
