@@ -34,47 +34,52 @@ these cases should not be considered canonical, and in fact may change at any ti
 
 A text between two asterisks will be rendered as **bold**:
 
+| wikimark      | renders as    |
 |---------------|---------------|
 | `*bold text*` | **bold text** |
 
 The restriction on this rule is that the opening asterisk must be preceded by a
 whitespace and not followed by a whitespace; while the closing asterisk must be followed
-by a whitespace but not preceded by a whitespace (here whitespace means the space
+by a whitespace but not preceded by a whitespace (here whitespace means a space
 character, or a start / end of a line).
 
 These rules imply that if an asterisk is surrounded by whitespace on both sides, or if
 it it has non-space characters on both sides, then such asterisk is treated literally
-and does not introduce a bold sequence:
+and does not create a bold sequence:
 
+| wikimark                      | renders as                   |
 |-------------------------------|------------------------------|
 | `not a * bold te*xt`          | not a \* bold te*xt          |
-| `force = mass * acceletation` | force = mass \* acceleration |
-| `(3 + 6)\*11 - 2`             | (3 + 6)\*11 - 2              |
+| `force = mass * acceletation` | force = mass * acceleration  |
+| `(3 + 6)*11 - 2`              | (3 + 6)*11 - 2               |
 
 At the same time, it is a syntax error to have an opening bold syntax without closing
 it. If such an asterisk needs to be treated literally, then it must be escaped:
 
+| wikimark          | renders as       |
 |-------------------|------------------|
 | `*is this bold?`  | ERROR            |
 | `*o*ne letter`    | ERROR            |
-| `\*this is ok`    | \*this is ok     |
-| `this is ok too*` | this is ok too\* |
+| `\*this is ok`    | *this is ok      |
+| `this is ok too*` | this is ok too*  |
 | `**`              | ERROR            |
 
 An alternative way of demarcating a bold sequence is to use the `{*`, `*}` delimiters.
 These do not have same restrictions as plain asterisks, and can be used inside a word,
-or nested:
+or be nested:
 
-|------------------------|------------------|
-| `{*bold text*}`        | **bold text**    |
-| `{*f*}irst letter`     | **f**irst letter |
-| `{* nested {*bold*}*}` | **nested bold**  |
+| wikimark               | renders as             |
+|------------------------|------------------------|
+| `{*bold text*}`        | **bold text**          |
+| `{*f*}irst letter`     | **f**irst letter       |
+| `{* nested {*bold*}*}` | **&nbsp;nested bold**  |
 
 
 ### Italic text
 
 Text surrounded with slashes `/` will be rendered as italic:
 
+| wikimark        | renders as    |
 |-----------------|---------------|
 | `/italic text/` | *italic text* |
 
@@ -82,6 +87,7 @@ Similar to the rules for bold text, the first `/` must be preceded but not follo
 whitespace, and the last `/` must be followed but not preceded by whitespace. Empty
 italic sequence is also not allowed:
 
+| wikimark          | renders as  |
 |-------------------|-------------|
 | `A / B / C`       | A / B / C   |
 | `π ≈ 22/7`        | π ≈ 22/7    |
@@ -92,28 +98,32 @@ italic sequence is also not allowed:
 An italic text can also be marked up using the `{/`, `/}` delimiters. These have less
 restrictions compared to plain `/` characters:
 
+| wikimark                 | renders as      |
 |--------------------------|-----------------|
-| `{/ italic /}`           | *italic*        |
+| `{/ italic /}`           | *&nbsp;italic*  |
 | `{/F/}irst letter`       | *F*irst letter  |
 | `{/nested {/italic/}/}`  | *nested italic* |
 | `{/this is not ok`       | ERROR           |
 | `{/this {*is not/} ok*}` | ERROR           |
 
-When you want to apply both bold and italic style to the same word, prefer to have bold
-outside and italic inside, not the other way around:
+When you want to apply both bold and italic style to the same word, prefer to have the
+bold outside and the italic inside, not the other way around:
 
+| wikimark              | renders as            |
 |-----------------------|-----------------------|
 | `*/GOOD/*`            | ***GOOD***            |
 | `/*not recommended*/` | ***not recommended*** |
 | `{/{*ALSO GOOD*}/}`   | ***ALSO GOOD***       |
+| `{*{/ALSO GOOD/}*}`   | ***ALSO GOOD***       |
 
 
 ### Higlight/insert/delete
 
 A text surrounded with `{=`, `=}` will be shown highlighted; to show the text with a
-strike-through ("deleted") use `{-` / `-}`; and lastly `{+`, `+}` mark the text as
-"inserted":
+strike-through ("deleted") use `{-` / `-}`; for text with an underscore ("inserted") 
+use `{+`, `+}`:
 
+| wikimark               | renders as                    |
 |------------------------|-------------------------------|
 | `{=highlighted text=}` | <mark>highlighted text</mark> |
 | `{-deleted text-}`     | <del>deleted text</del>       |
@@ -125,6 +135,7 @@ strike-through ("deleted") use `{-` / `-}`; and lastly `{+`, `+}` mark the text 
 A text delimited with `{_`, `_}` becomes a subscript; text surrounded with `{^`, `^}`
 is rendered in superscript:
 
+| wikimark           | renders as                   |
 |--------------------|------------------------------|
 | `C{_2_}H{_5_}OH`   | C<sub>2</sub>H<sub>5</sub>OH |
 | `E = mc{^2^}`      | E = mc<sup>2</sup>           |
@@ -132,11 +143,12 @@ is rendered in superscript:
 
 ### Verbatim text
 
-A text surrounded with backticks <code>`</code>, or with <code>{`</code> /
-<code>`}</code> pairs, is considered **verbatim** (or code). Such text is rendered in
+A text surrounded with backticks <code>\`</code>, or with <code>{\`</code> /
+<code>\`}</code> pairs, is considered **verbatim** ("code"). Such text is rendered in
 a monospace font, and not processed for any further Wikimark syntax -- not even
 backslash-escaping.
 
+| wikimark               | renders as         |
 |------------------------|--------------------|
 | `` `2 + 2 = 4` ``      | `2 + 2 = 4`        |
 | ``{`may contain `s`}`` | ``may contain `s`` |
@@ -147,7 +159,9 @@ backslash-escaping.
 A backslash at the end of a line (before the newline) indicates a "hard break", which
 corresponds to `<br/>` element in HTML.
 
-<table><tr>
+<table>
+<tr><th>wikitext<th>renders as</tr>
+<tr>
 <td><pre>once\
 upon a time</pre></td>
 <td><p>once<br/>upon a time</p></td>
@@ -160,6 +174,7 @@ A tilde `~` between two non-whitespace characters indicates a non-breaking space
 (Unicode U+00A0, HTML `&nsbp;`). This character looks like a simple space, but doesn't
 allow a line break at that point.
 
+| wikimark    | renders as     |
 |-------------|----------------|
 | `Dr.~House` | Dr.&nbsp;House |
 
@@ -169,6 +184,7 @@ allow a line break at that point.
 A comment is a text surrounded with `{%`, `%}` delimiters. The text inside is removed
 from the output completely.
 
+| wikimark                   | renders as   |
 |----------------------------|--------------|
 | `Hello, {%strange%} world` | Hello, world |
 
@@ -178,7 +194,7 @@ according to the rules of the current block:
 
 ```wikimark
 - This is a list item {% with a comment that extends
-  across the several lines. The comment must still be
+  across several lines. The comment must still be
   correctly indented, as demanded by the list item
   block. %} that is perfectly normal thank you very much.
 ```
@@ -186,13 +202,15 @@ according to the rules of the current block:
 
 ### Regular text
 
-Any characters that do not have special meaning are treated as literal text. Whenever
-a character needs to be treated literally without creating a syntactic structure, it
-can be escaped with a backslash. All ASCII punctuation characters can be escaped in this
-way, for example `\*` denotes a literal asterisk, and `\@` is the same as `@`.
+Any characters that do not have special meaning are treated as literal text.
 
-Any Unicode characters may be present in the input, except the following: `\x00 - \x09`,
-`\x0B - \x1F`, and `\x7F - \x9F`.
+Whenever a character needs to be treated literally without creating a syntactic
+structure, it can be escaped with a backslash. All ASCII punctuation characters can be
+escaped in this way, for example `\*` denotes a literal asterisk `*`, and `\@` is the
+same as `@`.
+
+Any Unicode characters may be present in the input, except characters in the following
+ranges: `\x00 - \x09`, `\x0B - \x1F`, and `\x7F - \x9F`.
 
 
 ## Links
@@ -203,6 +221,7 @@ The most common type of link in Wikimark is a link to another page. This is
 accomplished by putting the name of that page in square brackets. The name of the link
 will be the same as the target:
 
+| wikimark               | renders as                                          |
 |------------------------|-----------------------------------------------------|
 | `[Another page]`       | <a href="Another page">Another page</a>             |
 | `[Fallout: New Vegas]` | <a href="Fallout: New Vegas">Fallout: New Vegas</a> |
@@ -211,6 +230,7 @@ If the link is immediately followed by non-whitespace non-punctuation characters
 those will "bleed into" the link -- they will be considered part of the text of the
 link, but not part of the name of the target page:
 
+| wikimark         | renders as                       |
 |------------------|----------------------------------|
 | `[Weapon]s`      | <a href="Weapon">Weapons</a>     |
 | `[Peace]fulness` | <a href="Peace">Peacefulness</a> |
@@ -218,6 +238,7 @@ link, but not part of the name of the target page:
 The text inside the square brackets allows markup. In this case the name of the target
 is obtained by stripping all markup and converting the content to plain text:
 
+| wikimark    | renders as                       |
 |-------------|----------------------------------|
 | `[H{_2_}O]` | <a href="H2O">H<sub>2</sub>O</a> |
 
@@ -227,6 +248,7 @@ If the title of the page contains symbols that may otherwise be construed as Wik
 markup, then those characters should be escaped. Characters `/`, `#`, and `|` are also
 considered special and should also be escaped:
 
+| wikimark            | renders as                                    |
 |---------------------|-----------------------------------------------|
 | `[Alien\/Predator]` | <a href="Alien%47Predator">Alien/Predator</a> |
 | `[Hospital \#3]`    | <a href="Hospital %353">Hospital #3</a>       |
@@ -238,6 +260,7 @@ If you want to link to a specific section of the same page, then the `#`-link ca
 used: just put the name of the section as-is after a `#` character and a space. The
 text of the link will not include the `#` character:
 
+| wikimark               | renders as                                       |
 |------------------------|--------------------------------------------------|
 | `[# Super/subscript]`  | <a href="#Super-subscript">Super/subscript</a>   |
 | `[# Intra-page links]` | <a href="#Intra-page-links">Intra-page links</a> |
@@ -250,6 +273,7 @@ The text of the link may contain markup, just like the text of the header can ha
 markup. Those do not have to be the same, the link will work as long as its plain-text
 version matches the plain-text version of the heading:
 
+| wikimark            | renders as                                    |
 |---------------------|-----------------------------------------------|
 | `[# /Italic/ text]` | <a href="#Italic-text"><i>Italic</i> text</a> |
 
@@ -264,7 +288,7 @@ place in that document. This is done by putting the name of the link (in square
 brackets) on a separate line, followed by a colon, and then followed by the link's
 intended target:
 
-```md
+```wikimark
 [this page]: Target page
 [example]: http://example.com/
 ```
@@ -272,6 +296,7 @@ intended target:
 By themselves, these definitions do not render into anything. However, when the same
 links are used elsewhere on a page, they will use the provided targets:
 
+| wikimark             | renders as                                         |
 |----------------------|----------------------------------------------------|
 | `For [example], see` | For <a href="http://example.com/">example</a>, see |
 | `[this page].`       | <a href="Target page">this page</a>.               |
@@ -290,7 +315,7 @@ The text of a link is matched in a case-sensitive matter. Thus, `[Example]` and
 has no definition, then it uses the next link's definition. Thus, in the following
 example all three defintions have the same target:
 
-```md
+```wikimark
 [Example]:
 [for example]:
 [example]: http://example.com/
@@ -299,17 +324,17 @@ example all three defintions have the same target:
 If a link has a particularly long name, then it can be split into multiple lines. In
 this case the newline and any start-of-line indentation are removed from the link:
 
-```md
+```wikimark
 [Taumata]:
-  https://en.wikipedia.org/wiki/Taumatawhakatangi%C2%ADhangakoauauota
-  matea%C2%ADturipukakapikimaunga%C2%ADhoronukupokaiwhen%C2%ADuakitan
-  atahu#Name
+  https://en.wikipedia.org/wiki/Taumatawhakatangi%C2%ADhanga
+  koauauotamatea%C2%ADturipukakapikimaunga%C2%ADhoronukupoka
+  iwhen%C2%ADuakitanatahu#Name
 ```
 
 In order to declare a link to a subsection of a particular internal page, write the
 name of the page first, followed by ` # `, and then the name of the section:
 
-```md
+```wikimark
 [Camille]: Midtown NPCs # Camille
 [Momo]: The Slums NPCs # Momo
 ```
@@ -358,6 +383,8 @@ of their numerals (i.e. <sup>[1]</sup>, <sup>[2]</sup>, etc).
 
 
 ### Images
+
+TODO
 
 
 ## Block elements
@@ -460,6 +487,8 @@ A block comment must be separated with blank lines from the surrounding content.
 
 ### Code block
 
+TODO
+
 
 ### Unordered list
 
@@ -514,8 +543,9 @@ be indented with as many spaces as needed to align the start of that line with t
 start of the text content on the preceding line.
 
 Each numbered marker may use one of the following patterns, though consecutive list
-items should use the same style:
+items should use the same style. The following marker styles are supported:
 
+|       |       |       |       |       |
 |-------|-------|-------|-------|-------|
 | `1.`  | `A.`  | `a.`  | `I.`  | `i.`  |
 | `1)`  | `A)`  | `a)`  | `I)`  | `i)`  |
@@ -556,6 +586,8 @@ box instead of a bullet marker. The following variants are supported:
 
 
 ### Definition list
+
+TODO
 
 
 ### Simple table
