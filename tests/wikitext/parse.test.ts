@@ -323,4 +323,26 @@ describe("Bold/italic", () => {
       new Bold([new Text(" three")]),
     ]);
   });
+
+  test("Unclosed bold and italic ranges", () => {
+    check("'''one ''two'''", [
+      new Bold([new Text("one "), new Italic([new Text("two")])]),
+      new Italic(),
+    ]);
+    check("''one '''two''", [
+      new Italic([new Text("one "), new Bold([new Text("two")])]),
+      new Bold(),
+    ]);
+  });
+
+  test("Separate bold and italic closed with '''''", () => {
+    check("''one '''two''''' three", [
+      new Italic([new Text("one "), new Bold([new Text("two")])]),
+      new Text(" three"),
+    ]);
+    check("'''one ''two''''' three", [
+      new Bold([new Text("one "), new Italic([new Text("two")])]),
+      new Text(" three"),
+    ]);
+  });
 });

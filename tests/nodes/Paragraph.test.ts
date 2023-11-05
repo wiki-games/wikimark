@@ -41,8 +41,7 @@ test("Multiple paragraphs", () => {
       "  Paragraph:",
       "    Text: Another paragraph",
       "  Paragraph:",
-      "    Text: One more",
-      "    Text:  paragraph",
+      "    Text: One more paragraph",
       "",
     ].join("\n")
   );
