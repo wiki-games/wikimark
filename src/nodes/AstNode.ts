@@ -1,3 +1,4 @@
+import { Text, nodeTypes } from "../nodes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { ok as assert } from "devlop";
 
@@ -92,16 +93,21 @@ export abstract class AstNode {
   }
 
   addChild(node: AstNode): void {
-    // assert(
-    //   this.allowsChild(node),
-    //   `Node ${node} is not allowed as a child of ${this}`
-    // );
-    // assert(
-    //   node.parent === null,
-    //   `Node ${node} already belongs to ${node.parent}`
-    // );
+    if (node.type === nodeTypes.text) {
+      const lastChild = this.lastChild;
+      if (lastChild?.type === nodeTypes.text) {
+        (lastChild! as Text).text += (node as Text).text;
+        return;
+      }
+    }
     this.children.push(node);
     node.parent = this;
+  }
+
+  addChildren(nodes: Array<AstNode>): void {
+    for (const node of nodes) {
+      this.addChild(node);
+    }
   }
 
   removeChild(node: AstNode): void {
@@ -114,11 +120,30 @@ export abstract class AstNode {
     node.parent = null;
   }
 
+  removeAllChildren(): Array<AstNode> {
+    const out = this.children;
+    this.children = [];
+    for (const child of out) {
+      child.parent = null;
+    }
+    return out;
+  }
+
   replaceChild(nodeOld: AstNode, nodeNew: AstNode): void {
     const i = this.children.findIndex((p) => p === nodeOld);
     if (i !== -1) {
       this.children[i] = nodeNew;
     }
+  }
+
+  addSiblingBefore(node: AstNode): void {
+    const i = this.parent!.children.findIndex((p) => p === this);
+    this.parent!.children.splice(i, 0, node);
+  }
+
+  addSiblingAfter(node: AstNode): void {
+    const i = this.parent!.children.findIndex((p) => p === this);
+    this.parent!.children.splice(i + 1, 0, node);
   }
 
   get isFirstChild(): boolean {

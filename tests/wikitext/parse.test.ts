@@ -1,9 +1,12 @@
 import { expect, test, describe } from "vitest";
 import { parse } from "../../src/wikitext/parse.js";
 import {
+  AstNode,
+  Bold,
   CodeBlock,
   Document,
   Header,
+  Italic,
   Paragraph,
   Text,
 } from "../../src/nodes.js";
@@ -169,5 +172,155 @@ describe("Headers", () => {
         new Header(2, [new Text("Header "), new CodeBlock("\nhohoho\n")]),
       ])
     );
+  });
+});
+
+describe("Bold/italic", () => {
+  function check(text: string, nodes: Array<AstNode>) {
+    expect(parse(text)).toEqual(new Document([new Paragraph(nodes)]));
+  }
+
+  test("Starts with 1 quote", () => {
+    check("'text", [new Text("'text")]);
+    check("'text'", [new Text("'text'")]);
+    check("'text''", [new Text("'text"), new Italic()]);
+    check("'text'''", [new Text("'text"), new Bold()]);
+    check("'text''''", [new Text("'text'"), new Bold()]);
+    check("'text'''''", [new Text("'text"), new Bold([new Italic()])]);
+    check("'text''''''", [new Text("'text'"), new Bold([new Italic()])]);
+    check("'text'''''''", [new Text("'text''"), new Bold([new Italic()])]);
+    check("'text''''''''", [new Text("'text'''"), new Bold([new Italic()])]);
+  });
+
+  test("Starts with 2 quotes", () => {
+    check("''text", [new Italic([new Text("text")])]);
+    check("''text'", [new Italic([new Text("text'")])]);
+    check("''text''", [new Italic([new Text("text")])]);
+    check("''text'''", [new Italic([new Text("text'")])]);
+    check("''text''''", [new Italic([new Text("text''")])]);
+    check("''text'''''", [new Italic([new Text("text")]), new Bold()]);
+    check("''text''''''", [new Italic([new Text("text'")]), new Bold()]);
+    check("''text'''''''", [new Italic([new Text("text''")]), new Bold()]);
+    check("''text''''''''", [new Italic([new Text("text'''")]), new Bold()]);
+  });
+
+  test("Starts with 3 quotes", () => {
+    check("'''text", [new Bold([new Text("text")])]);
+    check("'''text'", [new Bold([new Text("text'")])]);
+    check("'''text''", [new Text("'"), new Italic([new Text("text")])]);
+    check("'''text'''", [new Bold([new Text("text")])]);
+    check("'''text''''", [new Bold([new Text("text'")])]);
+    check("'''text'''''", [new Bold([new Text("text")]), new Italic()]);
+    check("'''text''''''", [new Bold([new Text("text'")]), new Italic()]);
+    check("'''text'''''''", [new Bold([new Text("text''")]), new Italic()]);
+    check("'''text''''''''", [new Bold([new Text("text'''")]), new Italic()]);
+  });
+
+  test("Starts with 4 quotes", () => {
+    check("''''text", [new Text("'"), new Bold([new Text("text")])]);
+    check("''''text'", [new Text("'"), new Bold([new Text("text'")])]);
+    check("''''text''", [new Text("''"), new Italic([new Text("text")])]);
+    check("''''text'''", [new Text("'"), new Bold([new Text("text")])]);
+    check("''''text''''", [new Text("'"), new Bold([new Text("text'")])]);
+    check("''''text'''''", [
+      new Text("'"),
+      new Bold([new Text("text")]),
+      new Italic(),
+    ]);
+    check("''''text''''''", [
+      new Text("'"),
+      new Bold([new Text("text'")]),
+      new Italic(),
+    ]);
+    check("''''text'''''''", [
+      new Text("'"),
+      new Bold([new Text("text''")]),
+      new Italic(),
+    ]);
+    check("''''text''''''''", [
+      new Text("'"),
+      new Bold([new Text("text'''")]),
+      new Italic(),
+    ]);
+  });
+
+  test("Starts with 5 quotes", () => {
+    check("'''''text", [new Bold([new Italic([new Text("text")])])]);
+    check("'''''text'", [new Bold([new Italic([new Text("text'")])])]);
+    check("'''''text''", [new Bold([new Italic([new Text("text")])])]);
+    check("'''''text'''", [new Italic([new Bold([new Text("text")])])]);
+    check("'''''text''''", [new Italic([new Bold([new Text("text'")])])]);
+    check("'''''text'''''", [new Bold([new Italic([new Text("text")])])]);
+    check("'''''text''''''", [new Bold([new Italic([new Text("text'")])])]);
+    check("'''''text'''''''", [new Bold([new Italic([new Text("text''")])])]);
+    check("'''''text''''''''", [new Bold([new Italic([new Text("text'''")])])]);
+  });
+
+  test("Starts with 6 quotes", () => {
+    check("''''''text", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text")])]),
+    ]);
+    check("''''''text'", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text'")])]),
+    ]);
+    check("''''''text''", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text")])]),
+    ]);
+    check("''''''text'''", [
+      new Text("'"),
+      new Italic([new Bold([new Text("text")])]),
+    ]);
+    check("''''''text''''", [
+      new Text("'"),
+      new Italic([new Bold([new Text("text'")])]),
+    ]);
+    check("''''''text'''''", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text")])]),
+    ]);
+    check("''''''text''''''", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text'")])]),
+    ]);
+    check("''''''text'''''''", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text''")])]),
+    ]);
+    check("''''''text''''''''", [
+      new Text("'"),
+      new Bold([new Italic([new Text("text'''")])]),
+    ]);
+  });
+
+  test("Starts with even more quotes", () => {
+    check("'''''''text'''''''", [
+      new Text("''"),
+      new Bold([new Italic([new Text("text''")])]),
+    ]);
+    check("''''''''text''''''''", [
+      new Text("'''"),
+      new Bold([new Italic([new Text("text'''")])]),
+    ]);
+  });
+
+  test("Bold+italic closes in separate places", () => {
+    check("'''''one'' two''' three", [
+      new Bold([new Italic([new Text("one")]), new Text(" two")]),
+      new Text(" three"),
+    ]);
+    check("'''''one''' two'' three", [
+      new Italic([new Bold([new Text("one")]), new Text(" two")]),
+      new Text(" three"),
+    ]);
+  });
+
+  test("Overlapping bold/italic ranges", () => {
+    check("''one '''two'' three'''", [
+      new Italic([new Text("one "), new Bold([new Text("two")])]),
+      new Bold([new Text(" three")]),
+    ]);
   });
 });

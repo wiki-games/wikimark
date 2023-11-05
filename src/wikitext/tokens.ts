@@ -3,7 +3,7 @@ export const tokens = {
   newline: "newline",
   text: "text",
   equalSignsRun: "equalSignsRun",
-  singleQuotesRun: "singleQuotesRun",
+  singleQuoteRun: "singleQuotesRun",
   leftBraceRun: "leftBraceRun",
   rightBraceRun: "rightBraceRun",
   leftBracketRun: "leftBracketRun",

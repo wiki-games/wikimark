@@ -655,7 +655,7 @@ const SPECIAL_CHARACTERS_SINGLE = new Map<number, string>([
 
 const SPECIAL_CHARACTER_RUNS = new Map<number, string>([
   [codes.equalSign, tokens.equalSignsRun],
-  [codes.quoteSingle, tokens.singleQuotesRun],
+  [codes.quoteSingle, tokens.singleQuoteRun],
   [codes.braceLeft, tokens.leftBraceRun],
   [codes.braceRight, tokens.rightBraceRun],
   [codes.bracketLeft, tokens.leftBracketRun],

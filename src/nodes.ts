@@ -1,4 +1,5 @@
 export { AstNode } from "./nodes/AstNode.js";
+export { Bold } from "./nodes/Bold.js";
 export { CodeBlock } from "./nodes/CodeBlock.js";
 export { Document } from "./nodes/Document.js";
 export { Header } from "./nodes/Header.js";

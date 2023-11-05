@@ -63,3 +63,108 @@ based on observation (trying various markups in Wikipedia's sandbox).
   - Max level of header is 6.
   - A header cannot contain a newline (unless it is a part of a comment, a template,
     or special HTML tag like `<pre>` or `<syntaxhighlight>`)
+
+- Bold/italic:
+  - a span of 2 or more `'` characters introduces a bold or italic markup: `''` means
+    italic, `'''` means bold. Any "extra" quotes will be left as-is. If the opening
+    and closing sequences have different lengths, the shorter one "wins", and the
+    longer is left as extra quote marks. If an italic/bold sequence is still open by
+    the end of a line, it is auto-closed:
+    - `'text` -> `'text`,
+    - `'text'` -> `'text'`,
+    - `'text''` -> `'text<i></i>`,
+    - `'text'''` -> `'text<b></b>`,
+    - `'text''''` -> `'text'<b></b>`,
+    - `'text'''''` -> `'text ` (can be considered as `<b><i></i></b>`),
+    - `'text''''''` -> `'text' `,
+    - `'text'''''''` -> `'text'' `,
+    - `'text''''''''` -> `'text''' ` etc...,
+    - `''text` -> `<i>text</i>`,
+    - `''text'` -> `<i>text'</i>`,
+    - `''text''` -> `<i>text</i>`,
+    - `''text'''` -> `<i>text'</i>`,
+    - `''text''''` -> `<i>text''</i>`,
+    - `''text'''''` -> `<i>text</i><b></b>`,
+    - `''text''''''` -> `<i>text'</i><b></b>`,
+    - `''text'''''''` -> `<i>text''</i><b></b>`,
+    - `''text''''''''` -> `<i>text'''</i><b></b>` etc...,
+    - `'''text` -> `<b>text</b>`,
+    - `'''text'` -> `<b>text'</b>`,
+    - `'''text''` -> `'<i>text</i>` (note the quote is outside of `<i/>`),
+    - `'''text'''` -> `<b>text</b>`,
+    - `'''text''''` -> `<b>text'</b>`,
+    - `'''text'''''` -> `<b>text</b><i></i>`,
+    - `'''text''''''` -> `<b>text'</b><i></i>`,
+    - `'''text'''''''` -> `<b>text''</b><i></i>`,
+    - `'''text''''''''` -> `<b>text'''</b><i></i>` etc...,
+    - `''''text` -> `'<b>text</b>`,
+    - `''''text'` -> `'<b>text'</b>`,
+    - `''''text''` -> `''<i>text</i>`,
+    - `''''text'''` -> `'<b>text</b>`,
+    - `''''text''''` -> `'<b>text'</b>`,
+    - `''''text'''''` -> `'<b>text</b><i></i>`,
+    - `''''text''''''` -> `'<b>text'</b><i></i>`,
+    - `''''text'''''''` -> `'<b>text''</b><i></i>`,
+    - `''''text''''''''` -> `'<b>text'''</b><i></i>` etc...,
+    - `'''''text` -> `<b><i>text</i></b>`,
+    - `'''''text'` -> `<b><i>text'</i></b>`,
+    - `'''''text''` -> `<b><i>text</i></b>`,
+    - `'''''text'''` -> `<i><b>text</b></i>`,
+    - `'''''text''''` -> `<i><b>text'</b></i>`,
+    - `'''''text'''''` -> `<b><i>text</i></b>`,
+    - `'''''text''''''` -> `<b><i>text'</i></b>`,
+    - `'''''text'''''''` -> `<b><i>text''</i></b>`,
+    - `'''''text''''''''` -> `<b><i>text'''</i></b>` etc...,
+    - `''''''text` -> `'<b><i>text</i></b>`,
+    - `''''''text'` -> `'<b><i>text'</i></b>`,
+    - `''''''text''` -> `'<b><i>text</i></b>`,
+    - `''''''text'''` -> `'<i><b>text</b></i>`,
+    - `''''''text''''` -> `'<b><i>text'</i></b>`,
+    - `''''''text'''''` -> `'<b><i>text</i></b>`,
+    - `''''''text''''''` -> `'<b><i>text'</i></b>`,
+    - `''''''text'''''''` -> `'<b><i>text''</i></b>`,
+    - `''''''text''''''''` -> `'<b><i>text'''</i></b>` etc...,
+    - `'''''''text'''''''` -> `''<b><i>text''</i></b>`,
+    - `''''''''text''''''''` -> `'''<b><i>text'''</i></b>`, etc.
+  - A bold+italic sequence (5 quotes) can be closed in two different places: one time
+    as bold, another time as italic:
+    - `'''''one'' two''' three` -> `<b><i>one</i> two</b> three`,
+    - `'''''one''' two'' three` -> `<i><b>one</b> two</i> three`,
+  - Bold and italic sequences can overlap:
+    - `''one '''two'' three'''` -> `<i>one <b>two</b></i><b> three</b>`,
+    - Note that this is the same behavior as for mismatched tags:
+      `<i>one <b>two</i> three</b>` -> `<i>one <b>two</b></i><b> three</b>`;
+  - Bold/italic markup inside links does not affect the outside bold/italic:
+    - `''one [[NYC|New '''York]] two` -> `<i>one <a>New <b>York</b></a> two</i>`;
+  - Bold/italic markup inside tags interacts with the outside:
+    - `''one <code>New '''York</code> two` ->
+      `<i>one <code>New '</code></i><code>York</code> two`;
+  - The template `{{'}}` can be used to insert literal `'` character:
+    - `{{'}}{{'}}hello` -> `''hello`
+
+  - Given this observed behavior, the following parsing rules can be surmised:
+    - The parser maintains a stack of bold/italic marks that it has seen in a line.
+    - When the parser sees a token which is a sequence of single quotes, it treates it
+      according to the number `n` of quotes:
+      - 1: a simple text quote;
+      - 2: an italic delimiter;
+      - 3: a bold delimiter;
+      - 4: a text quote followed by a bold delimiter;
+      - 5: an italic+bold ("strong") delimiter;
+      - 6+: a sequence of `n-5` text quotes, followed by a strong delimiter.
+    - For each delimiter, we will try to see whether it is an opening or a closing one:
+      - italic delimiter is closing if there was a previous italic or strong delimiter
+        on the stack. If italic closes a strong delimiter, then the latter is replaced
+        with an open bold delimiter.
+      - bold delimiter is closing if there was a previous bold/strong delimiter on the
+        stack. If bold closes a strong delimiter, the latter is replaced with an italic.
+      - strong delimiter is opening if there are no other delimiters on the stack, or
+        otherwise it closes the last delimiter and is replaced with the remainder (say,
+        if it closed an italic then the remainder is bold, if it closed strong then
+        there is no remainder). The remainder delimiter is treated as described above.
+    - The stack may have only the following combinations at any time: `[]`, `[bold]`,
+      `[italic]`, `[strong]`, `[bold, italic]`, `[italic, bold]`.
+    - If at the end of a line the stack has one element, then that element is closed as
+      if by a matching delimiter. If the stack has 2 elements (bold+italic or italic+
+      bold), then the bold delimiter is replaced with quote+italic, and the italic span
+      is created.

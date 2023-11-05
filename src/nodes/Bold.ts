@@ -4,9 +4,9 @@ import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 import { ok as assert } from "devlop";
 
-export class Italic extends AstNode {
+export class Bold extends AstNode {
   constructor(children?: Array<AstNode>) {
-    super(nodeTypes.italic, children);
+    super(nodeTypes.bold, children);
     this.isInline = true;
   }
 
@@ -16,11 +16,11 @@ export class Italic extends AstNode {
 
   override _writeWikimark(out: WikimarkWriter): void {
     assert(
-      !this.findChildOfType(nodeTypes.italic),
-      "An Italic node cannot contain other italic nodes inside"
+      !this.findChildOfType(nodeTypes.bold),
+      "A Bold node cannot contain other bold nodes inside"
     );
-    out.write(codes.slash);
+    out.write(codes.asterisk);
     super._writeWikimark(out);
-    out.write(codes.slash);
+    out.write(codes.asterisk);
   }
 }

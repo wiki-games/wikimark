@@ -1,7 +1,9 @@
 import {
   AstNode,
+  Bold,
   Document,
   Header,
+  Italic,
   Paragraph,
   Text,
   nodeTypes,
@@ -20,17 +22,19 @@ class Parser {
   constructor(tokens: Array<Token>) {
     this.tokens = tokens;
     this.position = 0;
+    this.biDelimiters = [];
   }
 
   protected tokens: Array<Token>;
   protected position: number;
+  private biDelimiters: Array<BINode>;
 
   parse(): Document {
     const root = new Document();
     this.processTemplates();
     this.position = 0;
     while (this.position < this.tokens.length) {
-      const ok = this.parseSingleLine(root);
+      const ok = this.parseBlockLine(root);
       if (!ok) {
         const token = this.tokenAt(0);
         throw Error(
@@ -274,7 +278,7 @@ class Parser {
   // position.
   //------------------------------------------------------------------------------------
 
-  private parseSingleLine(parent: AstNode): boolean {
+  private parseBlockLine(parent: AstNode): boolean {
     return (
       this.parseEmptyLine(parent) ||
       this.parseHeader(parent) ||
@@ -304,7 +308,7 @@ class Parser {
   private parseParagraph(parent: AstNode): boolean {
     let node = parent.lastChild;
     if (node !== null && node.type === nodeTypes.paragraph && node.isOpen) {
-      this.addTextChild(node, " ");
+      node.addChild(new Text(" "));
     } else {
       node?.setOpen(false);
       node = new Paragraph();
@@ -390,7 +394,10 @@ class Parser {
    * end of line, and leaves parsing position at the start of the next line.
    */
   private parseInline(parent: AstNode): boolean {
-    const pos0 = this.position;
+    const root = new ContainerNode();
+
+    // Step 1: convert all tokens into nodes, though some of the nodes may be
+    // temporary.
     while (true) {
       const token0 = this.tokenAt(0);
       if (token0 === null) break; // eof
@@ -399,15 +406,165 @@ class Parser {
         break;
       }
       const ok =
-        this.parseHtmlComment(parent, token0) ||
-        this.parseInlineWhitespace(parent, token0) ||
-        this.parseInlineText(parent, token0);
-      if (!ok) {
-        this.position = pos0;
-        return false;
+        this.parseBoldOrInlineDelimiters(root, token0) ||
+        this.parseHtmlComment(root, token0) ||
+        this.parseInlineWhitespace(root, token0) ||
+        this.parseInlineText(root, token0);
+      assert(ok);
+    }
+
+    // Step 2: combine/fix all temporary nodes
+    this.finalizeBoldOrInlineDelimiters(root);
+    let nodes = root.removeAllChildren();
+    nodes = this.convertNodesToNested(nodes);
+    parent.addChildren(nodes);
+    return true;
+  }
+
+  private parseBoldOrInlineDelimiters(parent: AstNode, token0: Token): boolean {
+    if (token0.type === tokens.singleQuoteRun) {
+      const n = token0.text.length;
+      if (n === 1 || n === 4 || n >= 6) {
+        parent.addChild(new Text("'".repeat(Math.max(n - 5, 1))));
+      }
+      if (n === 2) this.addItalicDelimiter(parent);
+      if (n === 3 || n === 4) this.addBoldDelimiter(parent);
+      if (n >= 5) this.addStrongDelimiter(parent);
+      this.position++;
+      return true;
+    }
+    return false;
+  }
+
+  private addItalicDelimiter(parent: AstNode): void {
+    const sig = this.biDelimiters.map((v) => v.type).join("");
+    if (sig === "" || sig === "b") {
+      parent.addChild(new BINode("i"));
+      this.biDelimiters.push(parent.lastChild!);
+    }
+    if (sig === "i" || sig === "bi") {
+      parent.addChild(new BINode("/i"));
+      this.biDelimiters.pop();
+    }
+    if (sig === "s") {
+      const prev = this.biDelimiters[0];
+      prev.type = "b";
+      prev.addSiblingAfter(new BINode("i"));
+      parent.addChild(new BINode("/i"));
+    }
+    if (sig === "ib") {
+      parent.addChild(new BINode("/b"));
+      parent.addChild(new BINode("/i"));
+      parent.addChild(new BINode("b"));
+      this.biDelimiters.pop();
+      this.biDelimiters.pop();
+      this.biDelimiters.push(parent.lastChild!);
+    }
+  }
+
+  private addBoldDelimiter(parent: AstNode): void {
+    const sig = this.biDelimiters.map((v) => v.type).join("");
+    if (sig === "" || sig === "i") {
+      parent.addChild(new BINode("b"));
+      this.biDelimiters.push(parent.lastChild!);
+    }
+    if (sig === "b" || sig === "ib") {
+      parent.addChild(new BINode("/b"));
+      this.biDelimiters.pop();
+    }
+    if (sig === "s") {
+      const prev = this.biDelimiters[0];
+      prev.type = "i";
+      prev.addSiblingAfter(new BINode("b"));
+      parent.addChild(new BINode("/b"));
+    }
+    if (sig === "bi") {
+      parent.addChild(new BINode("/i"));
+      parent.addChild(new BINode("/b"));
+      parent.addChild(new BINode("i"));
+      this.biDelimiters.pop();
+      this.biDelimiters.pop();
+      this.biDelimiters.push(parent.lastChild!);
+    }
+  }
+
+  private addStrongDelimiter(parent: AstNode): void {
+    const sig = this.biDelimiters.map((v) => v.type).join("");
+    if (sig === "") {
+      parent.addChild(new BINode("s"));
+      this.biDelimiters.push(parent.lastChild!);
+    }
+    if (sig === "i") {
+      parent.addChild(new BINode("/i"));
+      parent.addChild(new BINode("b"));
+      this.biDelimiters.pop();
+      this.biDelimiters.push(parent.lastChild!);
+    }
+    if (sig === "b") {
+      parent.addChild(new BINode("/b"));
+      parent.addChild(new BINode("i"));
+      this.biDelimiters.pop();
+      this.biDelimiters.push(parent.lastChild!);
+    }
+    if (sig === "s") {
+      const prev = this.biDelimiters.pop()!;
+      prev.type = "b";
+      prev.addSiblingAfter(new BINode("i"));
+      parent.addChild(new BINode("/i"));
+      parent.addChild(new BINode("/b"));
+    }
+    if (sig === "bi") {
+      parent.addChild(new BINode("/i"));
+      parent.addChild(new BINode("/b"));
+      this.biDelimiters.pop();
+      this.biDelimiters.pop();
+    }
+    if (sig === "ib") {
+      parent.addChild(new BINode("/b"));
+      parent.addChild(new BINode("/i"));
+      this.biDelimiters.pop();
+      this.biDelimiters.pop();
+    }
+  }
+
+  private finalizeBoldOrInlineDelimiters(parent: AstNode) {
+    const sig = this.biDelimiters.map((v) => v.type).join("");
+    if (sig === "i") this.addItalicDelimiter(parent);
+    if (sig === "b") this.addBoldDelimiter(parent);
+    if (sig === "s") this.addStrongDelimiter(parent);
+    if (sig === "ib") {
+      const node = this.biDelimiters[1];
+      node.type = "/i";
+      node.addSiblingBefore(new Text("'"));
+    }
+    if (sig === "bi") {
+      const node = this.biDelimiters[0];
+      node.type = "i";
+      node.addSiblingBefore(new Text("'"));
+      this.biDelimiters[1].type = "/i";
+    }
+  }
+
+  private convertNodesToNested(nodes: Array<AstNode>): Array<AstNode> {
+    const root = new ContainerNode();
+    let current = root;
+    for (const node of nodes) {
+      if (node.type === "b" || node.type === "i") {
+        const newNode = node.type === "b" ? new Bold() : new Italic();
+        current.addChild(newNode);
+        current = newNode;
+      } else if (node.type === "/b") {
+        assert(current instanceof Bold);
+        current = current.parent!;
+      } else if (node.type === "/i") {
+        assert(current instanceof Italic);
+        current = current.parent!;
+      } else {
+        current.addChild(node);
       }
     }
-    return true;
+    assert(current === root);
+    return root.removeAllChildren();
   }
 
   private parseHtmlComment(parent: AstNode, token0: Token): boolean {
@@ -438,7 +595,7 @@ class Parser {
   }
 
   private parseInlineText(parent: AstNode, token0: Token): boolean {
-    this.addTextChild(parent, token0.text);
+    parent.addChild(new Text(token0.text));
     this.position++;
     return true;
   }
@@ -462,18 +619,22 @@ class Parser {
     }
     return n;
   }
-
-  private addTextChild(parent: AstNode, text: string): void {
-    let lastChild = parent.lastChild;
-    if (lastChild?.type !== nodeTypes.text) {
-      lastChild = new Text("");
-      parent.addChild(lastChild);
-    }
-    (lastChild as Text).text += text;
-  }
 }
 
 type TemplateToken = Token & {
   name: string;
   args: Array<[string | null, Array<Token>]>;
 };
+
+class ContainerNode extends AstNode {
+  constructor() {
+    super("div");
+  }
+}
+
+class BINode extends AstNode {
+  constructor(type: "b" | "i" | "s" | "/b" | "/i" | "/s") {
+    super(type);
+    this.isInline = true;
+  }
+}
