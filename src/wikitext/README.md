@@ -8,11 +8,11 @@ The aforementioned description of the language omits the details of a parsing st
 and the behavior in some corner cases. We can attempt to reconstruct those details
 based on observation (trying various markups in Wikipedia's sandbox).
 
-
 ## Observations
 
 - Certain HTML tags alter the behavior of the parser. These include: `<pre>`,
   `<syntaxhighlight>`, and `<!-- -->`.
+
   - We will handle these tags at the tokenization stage, making sure that their
     content is parsed in "raw" mode.
 
@@ -23,11 +23,13 @@ based on observation (trying various markups in Wikipedia's sandbox).
   header, because template `{{uw}}` includes newlines; at the same time
   `== {{u|w}} ==\n` will be parsed as a header, because template `{{u|w}}` has
   only one line.
+
   - We will assume that such pathological use cases do not occur.
   - During parsing, we will detect the templates first, replacing them in the token
     stream with special "template" tokens.
 
 - Various template trivia:
+
   - A template may contain multiple newlines, without affecting the surrounding block
     structure;
   - For an invalid template, the braces are rendered as plain text;
@@ -55,6 +57,7 @@ based on observation (trying various markups in Wikipedia's sandbox).
     trailing whitespace.
 
 - Headers:
+
   - Whitespace surrounding the equal signs is ignored: `= H =` has text "H".
   - If the equal spans at the start and at the end have different lengths, then
     the shorter one determines the level of the header, and the extra equal signs from
@@ -65,6 +68,7 @@ based on observation (trying various markups in Wikipedia's sandbox).
     or special HTML tag like `<pre>` or `<syntaxhighlight>`)
 
 - Bold/italic:
+
   - a span of 2 or more `'` characters introduces a bold or italic markup: `''` means
     italic, `'''` means bold. Any "extra" quotes will be left as-is. If the opening
     and closing sequences have different lengths, the shorter one "wins", and the
@@ -140,6 +144,7 @@ based on observation (trying various markups in Wikipedia's sandbox).
     - `''one <code>New '''York</code> two` ->
       `<i>one <code>New '</code></i><code>York</code> two`;
   - The template `{{'}}` can be used to insert literal `'` character:
+
     - `{{'}}{{'}}hello` -> `''hello`
 
   - Given this observed behavior, the following parsing rules can be surmised:
@@ -168,3 +173,66 @@ based on observation (trying various markups in Wikipedia's sandbox).
       if by a matching delimiter. If the stack has 2 elements (bold+italic or italic+
       bold), then the bold delimiter is replaced with quote+italic, and the italic span
       is created.
+
+- Links:
+  - A link cannot contain a newline.
+  - A link can be formed when the opening run of square brackets contains an even number
+    of brackets, and the closing run has 2 or more square brackets:
+    - `[[link` -> `[[link`,
+    - `[[link]` -> `[[link]`,
+    - `[[link]]` -> `<a>link</a>`,
+    - `[[link]]]` -> `<a>link</a>]`,
+    - `[[link]]]]` -> `<a>link</a>]]`,
+    - `[[link]]]]]` -> `<a>link</a>]]]` etc...,
+    - `[[[link` -> `[[[link`,
+    - `[[[link]` -> `[[[link]`,
+    - `[[[link]]` -> `[[[link]]`,
+    - `[[[link]]]` -> `[[[link]]]`,
+    - `[[[link]]]]` -> `[[[link]]]]` etc...,
+    - `[[[[link` -> `[[[[link`,
+    - `[[[[link]` -> `[[[[link]`,
+    - `[[[[link]]` -> `[[<a>link</a>`,
+    - `[[[[link]]]` -> `[[<a>link</a>]`,
+    - `[[[[link]]]]` -> `[[<a>link</a>]]`,
+    - `[[[[link]]]]]` -> `[[<a>link</a>]]]` etc...,
+    - `[[[[[link]]` -> `[[[[[link]]`,
+    - `[[[[[link]]]` -> `[[[[[link]]]`,
+    - `[[[[[link]]]]` -> `[[[[[link]]]]` etc...,
+    - `[[[[[[link]]` -> `[[[[<a>link</a>`,
+    - `[[[[[[link]]]` -> `[[[[<a>link</a>]`,
+    - `[[[[[[link]]]]` -> `[[[[<a>link</a>]]`,
+    - `[[[[[[link]]]]]` -> `[[[[<a>link</a>]]]` etc...,
+  - The first part of the link (target) doesn't allow wiki markup, all characters are
+    rendered as-is:
+    - `[[''one'']]` -> `<a href="%27%27one%27%27">''one''</a>`
+  - The following characters are forbidden within the target of a link:
+    - `<`, `>`, `[`, `]`, `{`, `}`, `|`
+  - The part of the link after a pipe is the text of the link. The text of the link
+    already allows wikitext markup. Nested links are not allowed, though single
+    brackets are ok:
+    - `[[one|''two'']]` -> `<a href="one"><i>two</i></a>`,
+    - `[[one|[two]]]` -> `<a href="one">[two]</a>`,
+    - `[[one|[[two]]]]` -> `[[one|<a href="two">two</a>]]`,
+  - There are no named arguments to a link, so `=` sign is treated verbatim:
+    - `[[one|title=2]]` -> `<a href="one">title=2</a>`
+  - Since the link can have only one parameter, all subsequent pipe characters are
+    treated verbatim:
+    - `[[one|two|three]]` -> `<a href="one">two|three</a>`
+  - If a link has no text after a pipe, then the title is auto-renamed (see
+    [Help:Pipe trick](https://en.wikipedia.org/wiki/Help:Pipe_trick)).
+  - If a link has no text before the pipe (reverse pipe trick), then the name of the
+    target depends on the name of the page being parsed. In addition, the text after
+    the pipe is treated like a target, so the same restrictions apply.
+  - Wikitext supports text blending, where a part of a word after a link blends into
+    the text of the link:
+    - `[[bus]]es` -> `<a href="bus">buses</a>`
+  - Single square brackets indicate an external link. It can contain either a plain
+    URL, or a URL followed by a space, followed by a title. The title may contain
+    markup:
+    - `[http://example.com]`
+    - `[https://example.com Just ''an'' example]`
+  - If the title of an external link contains another link then it terminates the link?
+    - `[https://example.com Here's an [[example]] of that]` ->
+      `<a href="https://example.com>Here's an </a><a href="example">example</a> of that`
+  - For some reason `<pre/>` elements are allowed too, which produces a really
+    atrocious output...
