@@ -19,3 +19,5 @@ export const nodeTypes = {
   templateArg: "TemplateArg",
   text: "Text",
 } as const;
+
+export { parse as parseWikitext } from "./wikitext/parse.js";
