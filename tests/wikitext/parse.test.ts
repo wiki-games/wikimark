@@ -346,3 +346,11 @@ describe("Bold/italic", () => {
     ]);
   });
 });
+
+describe("Templates", () => {
+  test("Simple template", () => {
+    expect(parse("{{Simple template}}")).toEqual(
+      new Document([new Paragraph([new Text("�")])])
+    );
+  });
+});

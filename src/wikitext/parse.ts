@@ -139,6 +139,7 @@ class Parser {
         case tokens.rightBraceRun:
         case tokens.pipe:
           done = true;
+          this.position--;
           break;
         case tokens.leftBraceRun:
         case tokens.leftBracketRun:
@@ -156,6 +157,7 @@ class Parser {
           text += token0.text;
           break;
       }
+      this.position++;
     }
     this.skipTemplateWhitespace();
     const token1 = this.tokenAt(0);
@@ -206,6 +208,7 @@ class Parser {
         case tokens.htmlTagStart:
         case tokens.htmlEntity:
           done = true;
+          this.position--;
           break;
         case tokens.commentStart:
         case tokens.commentBody:
@@ -215,6 +218,7 @@ class Parser {
           text += token0.text;
           break;
       }
+      this.position++;
     }
     this.skipTemplateWhitespace();
     const token1 = this.tokenAt(0);
