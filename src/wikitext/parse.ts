@@ -8,6 +8,7 @@ import {
   Text,
   nodeTypes,
 } from "../nodes.js";
+import { Link } from "../nodes/Link.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
@@ -130,8 +131,7 @@ class Parser {
     while (!done) {
       const token0 = this.tokenAt(0);
       if (token0 === null) return null;
-      const type = token0.type;
-      switch (type) {
+      switch (token0.type) {
         case tokens.whitespace:
           text += " ";
           break;
@@ -411,6 +411,8 @@ class Parser {
       }
       const ok =
         this.parseBoldOrInlineDelimiters(root, token0) ||
+        this.parseInternalLink(root, token0) ||
+        this.parseExternalLink(root, token0) ||
         this.parseHtmlComment(root, token0) ||
         this.parseInlineWhitespace(root, token0) ||
         this.parseInlineText(root, token0);
@@ -441,10 +443,11 @@ class Parser {
   }
 
   private addItalicDelimiter(parent: AstNode): void {
-    const sig = this.biDelimiters.map((v) => v.type).join("");
+    const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "" || sig === "b") {
-      parent.addChild(new BINode("i"));
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("i");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
     if (sig === "i" || sig === "bi") {
       parent.addChild(new BINode("/i"));
@@ -452,25 +455,27 @@ class Parser {
     }
     if (sig === "s") {
       const prev = this.biDelimiters[0];
-      prev.type = "b";
+      prev.kind = "b";
       prev.addSiblingAfter(new BINode("i"));
       parent.addChild(new BINode("/i"));
     }
     if (sig === "ib") {
+      this.biDelimiters.pop();
+      this.biDelimiters.pop();
       parent.addChild(new BINode("/b"));
       parent.addChild(new BINode("/i"));
-      parent.addChild(new BINode("b"));
-      this.biDelimiters.pop();
-      this.biDelimiters.pop();
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("b");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
   }
 
   private addBoldDelimiter(parent: AstNode): void {
-    const sig = this.biDelimiters.map((v) => v.type).join("");
+    const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "" || sig === "i") {
-      parent.addChild(new BINode("b"));
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("b");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
     if (sig === "b" || sig === "ib") {
       parent.addChild(new BINode("/b"));
@@ -478,41 +483,45 @@ class Parser {
     }
     if (sig === "s") {
       const prev = this.biDelimiters[0];
-      prev.type = "i";
+      prev.kind = "i";
       prev.addSiblingAfter(new BINode("b"));
       parent.addChild(new BINode("/b"));
     }
     if (sig === "bi") {
       parent.addChild(new BINode("/i"));
       parent.addChild(new BINode("/b"));
-      parent.addChild(new BINode("i"));
       this.biDelimiters.pop();
       this.biDelimiters.pop();
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("i");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
   }
 
   private addStrongDelimiter(parent: AstNode): void {
-    const sig = this.biDelimiters.map((v) => v.type).join("");
+    const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "") {
-      parent.addChild(new BINode("s"));
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("s");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
     if (sig === "i") {
       parent.addChild(new BINode("/i"));
-      parent.addChild(new BINode("b"));
       this.biDelimiters.pop();
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("b");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
     if (sig === "b") {
       parent.addChild(new BINode("/b"));
-      parent.addChild(new BINode("i"));
       this.biDelimiters.pop();
-      this.biDelimiters.push(parent.lastChild!);
+      const node = new BINode("i");
+      parent.addChild(node);
+      this.biDelimiters.push(node);
     }
     if (sig === "s") {
       const prev = this.biDelimiters.pop()!;
-      prev.type = "b";
+      prev.kind = "b";
       prev.addSiblingAfter(new BINode("i"));
       parent.addChild(new BINode("/i"));
       parent.addChild(new BINode("/b"));
@@ -532,20 +541,20 @@ class Parser {
   }
 
   private finalizeBoldOrInlineDelimiters(parent: AstNode) {
-    const sig = this.biDelimiters.map((v) => v.type).join("");
+    const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "i") this.addItalicDelimiter(parent);
     if (sig === "b") this.addBoldDelimiter(parent);
     if (sig === "s") this.addStrongDelimiter(parent);
     if (sig === "ib") {
       const node = this.biDelimiters[1];
-      node.type = "/i";
+      node.kind = "/i";
       node.addSiblingBefore(new Text("'"));
     }
     if (sig === "bi") {
       const node = this.biDelimiters[0];
-      node.type = "i";
+      node.kind = "i";
       node.addSiblingBefore(new Text("'"));
-      this.biDelimiters[1].type = "/i";
+      this.biDelimiters[1].kind = "/i";
     }
   }
 
@@ -553,22 +562,115 @@ class Parser {
     const root = new ContainerNode();
     let current = root;
     for (const node of nodes) {
-      if (node.type === "b" || node.type === "i") {
-        const newNode = node.type === "b" ? new Bold() : new Italic();
-        current.addChild(newNode);
-        current = newNode;
-      } else if (node.type === "/b") {
-        assert(current instanceof Bold);
-        current = current.parent!;
-      } else if (node.type === "/i") {
-        assert(current instanceof Italic);
-        current = current.parent!;
+      if (node instanceof BINode) {
+        if (node.kind === "b" || node.kind === "i") {
+          const newNode = node.kind === "b" ? new Bold() : new Italic();
+          current.addChild(newNode);
+          current = newNode;
+        } else if (node.kind === "/b") {
+          assert(current instanceof Bold);
+          current = current.parent!;
+        } else if (node.kind === "/i") {
+          assert(current instanceof Italic);
+          current = current.parent!;
+        } else {
+          assert(false, `Unexpected BINode: ${node.kind}`);
+        }
       } else {
         current.addChild(node);
       }
     }
     assert(current === root);
     return root.removeAllChildren();
+  }
+
+  private parseInternalLink(parent: AstNode, token0: Token): boolean {
+    const pos0 = this.position;
+    if (token0.type === tokens.leftBracketRun && token0.text.length % 2 === 0) {
+      const target = this.parseInternalLinkTarget();
+      let result: AstNode | null = null;
+      if (target === null) {
+      } else if (target.startsWith("File:") || target.startsWith("Image:")) {
+        result = this.parseImageLink(target);
+      } else {
+        result = this.parsePageLink(target);
+      }
+      if (result !== null) {
+        const token1 = this.tokenAt(0)!;
+        this.position++; // skip over final `]]`
+        assert(
+          token1.type === tokens.rightBracketRun && token1.text.length >= 2
+        );
+        if (token0.text.length > 2) {
+          parent.addChild(new Text("[".repeat(token0.text.length - 2)));
+        }
+        parent.addChild(result);
+        if (token1.text.length > 2) {
+          parent.addChild(new Text("]".repeat(token1.text.length - 2)));
+        }
+        if (token1.text.length === 2) {
+          this.parseBleedingEnd(parent, result);
+        }
+        return true;
+      }
+    }
+    this.position = pos0;
+    return false;
+  }
+
+  private parseInternalLinkTarget(): string | null {
+    let text = "";
+    while (true) {
+      const token0 = this.tokenAt(0);
+      this.position++;
+      if (token0 === null) return null;
+      switch (token0.type) {
+        case tokens.commentStart:
+        case tokens.commentBody:
+        case tokens.commentEnd:
+          break;
+        case tokens.leftBraceRun:
+        case tokens.leftBracketRun:
+        case tokens.rightBracketRun:
+        case tokens.leftAngleBracket:
+        case tokens.rightAngleBracket:
+        case tokens.htmlTagStart:
+        case tokens.htmlEntity:
+        case tokens.newline:
+          return null;
+        case tokens.rightBracketRun:
+          if (token0.text.length === 1) return null;
+        case tokens.pipe:
+          this.position--;
+          return text;
+        case tokens.whitespace:
+          text += " ";
+          break;
+        default:
+          text += token0.text;
+          break;
+      }
+    }
+  }
+
+  /**
+   * Starting before `|` or `]]` token, this will try to parse the text of a regular
+   * page link (if present), and return the resulting [Link] node.
+   */
+  private parsePageLink(target: string): AstNode | null {
+    return null;
+  }
+
+  private parseImageLink(target: string): AstNode | null {
+    return null;
+  }
+
+  private parseBleedingEnd(parent: AstNode, linkNode: Link): void {}
+
+  private parseExternalLink(parent: AstNode, token0: Token): boolean {
+    if (token0.type === tokens.leftBracketRun && token0.text.length % 2 === 1) {
+    }
+    return false;
   }
 
   private parseHtmlComment(parent: AstNode, token0: Token): boolean {
@@ -637,8 +739,10 @@ class ContainerNode extends AstNode {
 }
 
 class BINode extends AstNode {
-  constructor(type: "b" | "i" | "s" | "/b" | "/i" | "/s") {
-    super(type);
+  constructor(kind: "b" | "i" | "s" | "/b" | "/i" | "/s") {
+    super("_BI");
+    this.kind = kind;
     this.isInline = true;
   }
+  public kind: string;
 }

@@ -1,4 +1,4 @@
-import { nodeTypes } from "../nodes.js";
+import { LinkDefinition, nodeTypes } from "../nodes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
@@ -8,10 +8,10 @@ import { AstNode } from "./AstNode.js";
  * A Document typically consists of a series of block nodes, such as
  * 
  *     Document:
- *       Header.1
+ *       Header[1]
  *       Paragraph
  *       Paragraph
- *       Header.2
+ *       Header[2]
  *       ...
  */
 export class Document extends AstNode {
@@ -28,5 +28,9 @@ export class Document extends AstNode {
     if (this.children.length === 0) return;
     out.writeNewline();
     super._writeWikimark(out);
+  }
+
+  resolveLinkTarget(name: string): LinkDefinition | null {
+    return null;
   }
 }

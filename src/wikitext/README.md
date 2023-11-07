@@ -213,6 +213,11 @@ based on observation (trying various markups in Wikipedia's sandbox).
     - `[[one|''two'']]` -> `<a href="one"><i>two</i></a>`,
     - `[[one|[two]]]` -> `<a href="one">[two]</a>`,
     - `[[one|[[two]]]]` -> `[[one|<a href="two">two</a>]]`,
+  - Newlines in the second part of the link are allowed. However, these newlines will
+    interfere with a header's definition of a line, which means the links cannot be
+    pre-processed similar to templates:
+    - `== [[Wikipedia|\n\nEncyclopedia]] ==` =>
+      `== <a href="Wikipedia">Encyclopedia</a> ==`
   - There are no named arguments to a link, so `=` sign is treated verbatim:
     - `[[one|title=2]]` -> `<a href="one">title=2</a>`
   - Since the link can have only one parameter, all subsequent pipe characters are
@@ -236,3 +241,7 @@ based on observation (trying various markups in Wikipedia's sandbox).
       `<a href="https://example.com>Here's an </a><a href="example">example</a> of that`
   - For some reason `<pre/>` elements are allowed too, which produces a really
     atrocious output...
+  - If the name of the target starts with `File:` or `Image:`, then a different set of
+    parsing rules comes into effect:
+    - multiple `|`-separated sections are allowed;
+    - named arguments are allowed.
