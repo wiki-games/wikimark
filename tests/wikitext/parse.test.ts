@@ -2,25 +2,25 @@ import { expect, test, describe } from "vitest";
 import { parse } from "../../src/wikitext/parse.js";
 import {
   AstNode,
-  Bold,
-  CodeBlock,
-  Document,
-  Header,
-  Italic,
-  Paragraph,
-  Text,
+  BoldNode,
+  CodeBlockNode,
+  DocumentNode,
+  HeaderNode,
+  ItalicNode,
+  ParagraphNode,
+  TextNode,
 } from "../../src/nodes.js";
 
 test("Empty document", () => {
-  expect(parse("")).toEqual(new Document());
-  expect(parse("  \t  ")).toEqual(new Document());
-  expect(parse("\n\r\n\r  \r")).toEqual(new Document());
+  expect(parse("")).toEqual(new DocumentNode());
+  expect(parse("  \t  ")).toEqual(new DocumentNode());
+  expect(parse("\n\r\n\r  \r")).toEqual(new DocumentNode());
 });
 
 describe("Paragraphs", () => {
   test("Simple text", () => {
     expect(parse("Simple text")).toEqual(
-      new Document([new Paragraph([new Text("Simple text")])])
+      new DocumentNode([new ParagraphNode([new TextNode("Simple text")])])
     );
   });
 
@@ -33,9 +33,9 @@ describe("Paragraphs", () => {
           "one sentence.\n"
       )
     ).toEqual(
-      new Document([
-        new Paragraph([
-          new Text(
+      new DocumentNode([
+        new ParagraphNode([
+          new TextNode(
             // TODO: fix extra spaces
             "This paragraph contains multiple lines even if it's just  one sentence."
           ),
@@ -54,19 +54,19 @@ describe("Paragraphs", () => {
           "Third paragraph, just for fun.\n\n\n"
       )
     ).toEqual(
-      new Document([
-        new Paragraph([new Text("Paragraph one.")]),
-        new Paragraph([
-          new Text("Another paragraph that may span several lines."),
+      new DocumentNode([
+        new ParagraphNode([new TextNode("Paragraph one.")]),
+        new ParagraphNode([
+          new TextNode("Another paragraph that may span several lines."),
         ]),
-        new Paragraph([new Text("Third paragraph, just for fun.")]),
+        new ParagraphNode([new TextNode("Third paragraph, just for fun.")]),
       ])
     );
   });
 
   test("Paragraph with a comment", () => {
     expect(parse("Para <!-- 1\n\n2\n\n  --> one")).toEqual(
-      new Document([new Paragraph([new Text("Para  one")])])
+      new DocumentNode([new ParagraphNode([new TextNode("Para  one")])])
     );
   });
 });
@@ -74,56 +74,56 @@ describe("Paragraphs", () => {
 describe("Headers", () => {
   test("Simple header", () => {
     expect(parse("=Simple=")).toEqual(
-      new Document([new Header(1, [new Text("Simple")])])
+      new DocumentNode([new HeaderNode(1, [new TextNode("Simple")])])
     );
   });
 
   test("Not a header", () => {
     expect(parse("==\n")).toEqual(
-      new Document([new Paragraph([new Text("==")])])
+      new DocumentNode([new ParagraphNode([new TextNode("==")])])
     );
   });
 
   test("Not a header again", () => {
     expect(parse("=== Looks like a header")).toEqual(
-      new Document([new Paragraph([new Text("=== Looks like a header")])])
+      new DocumentNode([new ParagraphNode([new TextNode("=== Looks like a header")])])
     );
   });
 
   test("Header with whitespace", () => {
     expect(parse("==  Header two ==")).toEqual(
-      new Document([new Header(2, [new Text("Header two")])])
+      new DocumentNode([new HeaderNode(2, [new TextNode("Header two")])])
     );
   });
 
   test("Mismatched header, left", () => {
     expect(parse("=== Another header =")).toEqual(
-      new Document([new Header(1, [new Text("== Another header")])])
+      new DocumentNode([new HeaderNode(1, [new TextNode("== Another header")])])
     );
   });
 
   test("Mismatched header, right", () => {
     expect(parse("=  Another header ====")).toEqual(
-      new Document([new Header(1, [new Text("Another header ===")])])
+      new DocumentNode([new HeaderNode(1, [new TextNode("Another header ===")])])
     );
   });
 
   test("Header terminates a paragraph", () => {
     expect(parse("Hello,\n==world==\n!")).toEqual(
-      new Document([
-        new Paragraph([new Text("Hello,")]),
-        new Header(2, [new Text("world")]),
-        new Paragraph([new Text("!")]),
+      new DocumentNode([
+        new ParagraphNode([new TextNode("Hello,")]),
+        new HeaderNode(2, [new TextNode("world")]),
+        new ParagraphNode([new TextNode("!")]),
       ])
     );
   });
 
   test("Consecutive headers", () => {
     expect(parse("==H1==\n==H2==\n==H3==\n")).toEqual(
-      new Document([
-        new Header(2, [new Text("H1")]),
-        new Header(2, [new Text("H2")]),
-        new Header(2, [new Text("H3")]),
+      new DocumentNode([
+        new HeaderNode(2, [new TextNode("H1")]),
+        new HeaderNode(2, [new TextNode("H2")]),
+        new HeaderNode(2, [new TextNode("H3")]),
       ])
     );
   });
@@ -134,42 +134,42 @@ describe("Headers", () => {
         "=H1=\n==H2==\n===H3===\n====H4====\n=====H5=====\n======H6======\n"
       )
     ).toEqual(
-      new Document([
-        new Header(1, [new Text("H1")]),
-        new Header(2, [new Text("H2")]),
-        new Header(3, [new Text("H3")]),
-        new Header(4, [new Text("H4")]),
-        new Header(5, [new Text("H5")]),
-        new Header(6, [new Text("H6")]),
+      new DocumentNode([
+        new HeaderNode(1, [new TextNode("H1")]),
+        new HeaderNode(2, [new TextNode("H2")]),
+        new HeaderNode(3, [new TextNode("H3")]),
+        new HeaderNode(4, [new TextNode("H4")]),
+        new HeaderNode(5, [new TextNode("H5")]),
+        new HeaderNode(6, [new TextNode("H6")]),
       ])
     );
   });
 
   test("Header is not too long", () => {
     expect(parse("==========H2==\n==H2==========")).toEqual(
-      new Document([
-        new Header(2, [new Text("========H2")]),
-        new Header(2, [new Text("H2========")]),
+      new DocumentNode([
+        new HeaderNode(2, [new TextNode("========H2")]),
+        new HeaderNode(2, [new TextNode("H2========")]),
       ])
     );
   });
 
   test("Header is too long but still ok", () => {
     expect(parse("========== H6 ==========")).toEqual(
-      new Document([new Header(6, [new Text("==== H6 ====")])])
+      new DocumentNode([new HeaderNode(6, [new TextNode("==== H6 ====")])])
     );
   });
 
   test("Header with a comment", () => {
     expect(parse("== Header<!--\n\n\n--> one==")).toEqual(
-      new Document([new Header(2, [new Text("Header one")])])
+      new DocumentNode([new HeaderNode(2, [new TextNode("Header one")])])
     );
   });
 
   test.fails("Header with <pre>", () => {
     expect(parse("== Header <pre>\nhohoho\n</pre> ==")).toEqual(
-      new Document([
-        new Header(2, [new Text("Header "), new CodeBlock("\nhohoho\n")]),
+      new DocumentNode([
+        new HeaderNode(2, [new TextNode("Header "), new CodeBlockNode("\nhohoho\n")]),
       ])
     );
   });
@@ -177,172 +177,185 @@ describe("Headers", () => {
 
 describe("Bold/italic", () => {
   function check(text: string, nodes: Array<AstNode>) {
-    expect(parse(text)).toEqual(new Document([new Paragraph(nodes)]));
+    expect(parse(text)).toEqual(new DocumentNode([new ParagraphNode(nodes)]));
   }
 
   test("Starts with 1 quote", () => {
-    check("'text", [new Text("'text")]);
-    check("'text'", [new Text("'text'")]);
-    check("'text''", [new Text("'text"), new Italic()]);
-    check("'text'''", [new Text("'text"), new Bold()]);
-    check("'text''''", [new Text("'text'"), new Bold()]);
-    check("'text'''''", [new Text("'text"), new Bold([new Italic()])]);
-    check("'text''''''", [new Text("'text'"), new Bold([new Italic()])]);
-    check("'text'''''''", [new Text("'text''"), new Bold([new Italic()])]);
-    check("'text''''''''", [new Text("'text'''"), new Bold([new Italic()])]);
+    check("'text", [new TextNode("'text")]);
+    check("'text'", [new TextNode("'text'")]);
+    check("'text''", [new TextNode("'text"), new ItalicNode()]);
+    check("'text'''", [new TextNode("'text"), new BoldNode()]);
+    check("'text''''", [new TextNode("'text'"), new BoldNode()]);
+    check("'text'''''", [new TextNode("'text"), new BoldNode([new ItalicNode()])]);
+    check("'text''''''", [new TextNode("'text'"), new BoldNode([new ItalicNode()])]);
+    check("'text'''''''", [new TextNode("'text''"), new BoldNode([new ItalicNode()])]);
+    check("'text''''''''", [
+      new TextNode("'text'''"),
+      new BoldNode([new ItalicNode()]),
+    ]);
   });
 
   test("Starts with 2 quotes", () => {
-    check("''text", [new Italic([new Text("text")])]);
-    check("''text'", [new Italic([new Text("text'")])]);
-    check("''text''", [new Italic([new Text("text")])]);
-    check("''text'''", [new Italic([new Text("text'")])]);
-    check("''text''''", [new Italic([new Text("text''")])]);
-    check("''text'''''", [new Italic([new Text("text")]), new Bold()]);
-    check("''text''''''", [new Italic([new Text("text'")]), new Bold()]);
-    check("''text'''''''", [new Italic([new Text("text''")]), new Bold()]);
-    check("''text''''''''", [new Italic([new Text("text'''")]), new Bold()]);
+    check("''text", [new ItalicNode([new TextNode("text")])]);
+    check("''text'", [new ItalicNode([new TextNode("text'")])]);
+    check("''text''", [new ItalicNode([new TextNode("text")])]);
+    check("''text'''", [new ItalicNode([new TextNode("text'")])]);
+    check("''text''''", [new ItalicNode([new TextNode("text''")])]);
+    check("''text'''''", [new ItalicNode([new TextNode("text")]), new BoldNode()]);
+    check("''text''''''", [new ItalicNode([new TextNode("text'")]), new BoldNode()]);
+    check("''text'''''''", [new ItalicNode([new TextNode("text''")]), new BoldNode()]);
+    check("''text''''''''", [
+      new ItalicNode([new TextNode("text'''")]),
+      new BoldNode(),
+    ]);
   });
 
   test("Starts with 3 quotes", () => {
-    check("'''text", [new Bold([new Text("text")])]);
-    check("'''text'", [new Bold([new Text("text'")])]);
-    check("'''text''", [new Text("'"), new Italic([new Text("text")])]);
-    check("'''text'''", [new Bold([new Text("text")])]);
-    check("'''text''''", [new Bold([new Text("text'")])]);
-    check("'''text'''''", [new Bold([new Text("text")]), new Italic()]);
-    check("'''text''''''", [new Bold([new Text("text'")]), new Italic()]);
-    check("'''text'''''''", [new Bold([new Text("text''")]), new Italic()]);
-    check("'''text''''''''", [new Bold([new Text("text'''")]), new Italic()]);
+    check("'''text", [new BoldNode([new TextNode("text")])]);
+    check("'''text'", [new BoldNode([new TextNode("text'")])]);
+    check("'''text''", [new TextNode("'"), new ItalicNode([new TextNode("text")])]);
+    check("'''text'''", [new BoldNode([new TextNode("text")])]);
+    check("'''text''''", [new BoldNode([new TextNode("text'")])]);
+    check("'''text'''''", [new BoldNode([new TextNode("text")]), new ItalicNode()]);
+    check("'''text''''''", [new BoldNode([new TextNode("text'")]), new ItalicNode()]);
+    check("'''text'''''''", [new BoldNode([new TextNode("text''")]), new ItalicNode()]);
+    check("'''text''''''''", [
+      new BoldNode([new TextNode("text'''")]),
+      new ItalicNode(),
+    ]);
   });
 
   test("Starts with 4 quotes", () => {
-    check("''''text", [new Text("'"), new Bold([new Text("text")])]);
-    check("''''text'", [new Text("'"), new Bold([new Text("text'")])]);
-    check("''''text''", [new Text("''"), new Italic([new Text("text")])]);
-    check("''''text'''", [new Text("'"), new Bold([new Text("text")])]);
-    check("''''text''''", [new Text("'"), new Bold([new Text("text'")])]);
+    check("''''text", [new TextNode("'"), new BoldNode([new TextNode("text")])]);
+    check("''''text'", [new TextNode("'"), new BoldNode([new TextNode("text'")])]);
+    check("''''text''", [new TextNode("''"), new ItalicNode([new TextNode("text")])]);
+    check("''''text'''", [new TextNode("'"), new BoldNode([new TextNode("text")])]);
+    check("''''text''''", [new TextNode("'"), new BoldNode([new TextNode("text'")])]);
     check("''''text'''''", [
-      new Text("'"),
-      new Bold([new Text("text")]),
-      new Italic(),
+      new TextNode("'"),
+      new BoldNode([new TextNode("text")]),
+      new ItalicNode(),
     ]);
     check("''''text''''''", [
-      new Text("'"),
-      new Bold([new Text("text'")]),
-      new Italic(),
+      new TextNode("'"),
+      new BoldNode([new TextNode("text'")]),
+      new ItalicNode(),
     ]);
     check("''''text'''''''", [
-      new Text("'"),
-      new Bold([new Text("text''")]),
-      new Italic(),
+      new TextNode("'"),
+      new BoldNode([new TextNode("text''")]),
+      new ItalicNode(),
     ]);
     check("''''text''''''''", [
-      new Text("'"),
-      new Bold([new Text("text'''")]),
-      new Italic(),
+      new TextNode("'"),
+      new BoldNode([new TextNode("text'''")]),
+      new ItalicNode(),
     ]);
   });
 
   test("Starts with 5 quotes", () => {
-    check("'''''text", [new Bold([new Italic([new Text("text")])])]);
-    check("'''''text'", [new Bold([new Italic([new Text("text'")])])]);
-    check("'''''text''", [new Bold([new Italic([new Text("text")])])]);
-    check("'''''text'''", [new Italic([new Bold([new Text("text")])])]);
-    check("'''''text''''", [new Italic([new Bold([new Text("text'")])])]);
-    check("'''''text'''''", [new Bold([new Italic([new Text("text")])])]);
-    check("'''''text''''''", [new Bold([new Italic([new Text("text'")])])]);
-    check("'''''text'''''''", [new Bold([new Italic([new Text("text''")])])]);
-    check("'''''text''''''''", [new Bold([new Italic([new Text("text'''")])])]);
+    check("'''''text", [new BoldNode([new ItalicNode([new TextNode("text")])])]);
+    check("'''''text'", [new BoldNode([new ItalicNode([new TextNode("text'")])])]);
+    check("'''''text''", [new BoldNode([new ItalicNode([new TextNode("text")])])]);
+    check("'''''text'''", [new ItalicNode([new BoldNode([new TextNode("text")])])]);
+    check("'''''text''''", [new ItalicNode([new BoldNode([new TextNode("text'")])])]);
+    check("'''''text'''''", [new BoldNode([new ItalicNode([new TextNode("text")])])]);
+    check("'''''text''''''", [new BoldNode([new ItalicNode([new TextNode("text'")])])]);
+    check("'''''text'''''''", [
+      new BoldNode([new ItalicNode([new TextNode("text''")])]),
+    ]);
+    check("'''''text''''''''", [
+      new BoldNode([new ItalicNode([new TextNode("text'''")])]),
+    ]);
   });
 
   test("Starts with 6 quotes", () => {
     check("''''''text", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text")])]),
     ]);
     check("''''''text'", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text'")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text'")])]),
     ]);
     check("''''''text''", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text")])]),
     ]);
     check("''''''text'''", [
-      new Text("'"),
-      new Italic([new Bold([new Text("text")])]),
+      new TextNode("'"),
+      new ItalicNode([new BoldNode([new TextNode("text")])]),
     ]);
     check("''''''text''''", [
-      new Text("'"),
-      new Italic([new Bold([new Text("text'")])]),
+      new TextNode("'"),
+      new ItalicNode([new BoldNode([new TextNode("text'")])]),
     ]);
     check("''''''text'''''", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text")])]),
     ]);
     check("''''''text''''''", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text'")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text'")])]),
     ]);
     check("''''''text'''''''", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text''")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text''")])]),
     ]);
     check("''''''text''''''''", [
-      new Text("'"),
-      new Bold([new Italic([new Text("text'''")])]),
+      new TextNode("'"),
+      new BoldNode([new ItalicNode([new TextNode("text'''")])]),
     ]);
   });
 
   test("Starts with even more quotes", () => {
     check("'''''''text'''''''", [
-      new Text("''"),
-      new Bold([new Italic([new Text("text''")])]),
+      new TextNode("''"),
+      new BoldNode([new ItalicNode([new TextNode("text''")])]),
     ]);
     check("''''''''text''''''''", [
-      new Text("'''"),
-      new Bold([new Italic([new Text("text'''")])]),
+      new TextNode("'''"),
+      new BoldNode([new ItalicNode([new TextNode("text'''")])]),
     ]);
   });
 
   test("Bold+italic closes in separate places", () => {
     check("'''''one'' two''' three", [
-      new Bold([new Italic([new Text("one")]), new Text(" two")]),
-      new Text(" three"),
+      new BoldNode([new ItalicNode([new TextNode("one")]), new TextNode(" two")]),
+      new TextNode(" three"),
     ]);
     check("'''''one''' two'' three", [
-      new Italic([new Bold([new Text("one")]), new Text(" two")]),
-      new Text(" three"),
+      new ItalicNode([new BoldNode([new TextNode("one")]), new TextNode(" two")]),
+      new TextNode(" three"),
     ]);
   });
 
   test("Overlapping bold/italic ranges", () => {
     check("''one '''two'' three'''", [
-      new Italic([new Text("one "), new Bold([new Text("two")])]),
-      new Bold([new Text(" three")]),
+      new ItalicNode([new TextNode("one "), new BoldNode([new TextNode("two")])]),
+      new BoldNode([new TextNode(" three")]),
     ]);
   });
 
   test("Unclosed bold and italic ranges", () => {
     check("'''one ''two'''", [
-      new Bold([new Text("one "), new Italic([new Text("two")])]),
-      new Italic(),
+      new BoldNode([new TextNode("one "), new ItalicNode([new TextNode("two")])]),
+      new ItalicNode(),
     ]);
     check("''one '''two''", [
-      new Italic([new Text("one "), new Bold([new Text("two")])]),
-      new Bold(),
+      new ItalicNode([new TextNode("one "), new BoldNode([new TextNode("two")])]),
+      new BoldNode(),
     ]);
   });
 
   test("Separate bold and italic closed with '''''", () => {
     check("''one '''two''''' three", [
-      new Italic([new Text("one "), new Bold([new Text("two")])]),
-      new Text(" three"),
+      new ItalicNode([new TextNode("one "), new BoldNode([new TextNode("two")])]),
+      new TextNode(" three"),
     ]);
     check("'''one ''two''''' three", [
-      new Bold([new Text("one "), new Italic([new Text("two")])]),
-      new Text(" three"),
+      new BoldNode([new TextNode("one "), new ItalicNode([new TextNode("two")])]),
+      new TextNode(" three"),
     ]);
   });
 });
@@ -350,7 +363,7 @@ describe("Bold/italic", () => {
 describe("Templates", () => {
   test("Simple template", () => {
     expect(parse("{{Simple template}}")).toEqual(
-      new Document([new Paragraph([new Text("�")])])
+      new DocumentNode([new ParagraphNode([new TextNode("�")])])
     );
   });
 });

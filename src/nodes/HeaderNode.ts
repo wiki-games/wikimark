@@ -3,7 +3,7 @@ import { codes } from "../utils/codes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
-export class Header extends AstNode {
+export class HeaderNode extends AstNode {
   constructor(level: number, children?: Array<AstNode>) {
     super(nodeTypes.header, children);
     this.level = level;
@@ -15,10 +15,6 @@ export class Header extends AstNode {
    */
   public level: number;
 
-  override allowsChild(node: AstNode): boolean {
-    return node.isInline;
-  }
-
   override toString(): string {
     return `${this.type}[${this.level}]`;
   }
@@ -26,7 +22,7 @@ export class Header extends AstNode {
   override _writeWikimark(out: WikimarkWriter): void {
     const prev = this.previousSibling;
     if (prev === null) {
-    } else if (prev instanceof Header) {
+    } else if (prev instanceof HeaderNode) {
       out.writeNewline();
     } else {
       out.writeNewline();

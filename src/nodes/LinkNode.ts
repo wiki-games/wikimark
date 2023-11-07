@@ -1,13 +1,13 @@
-import { Text, nodeTypes } from "../nodes.js";
+import { TextNode, nodeTypes } from "../nodes.js";
 import { codes } from "../utils/codes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
 /**
- * The [Link] class represents a hyperlink, an equivalent of HTML `<a href=.../>`.
+ * The [LinkNode] class represents a hyperlink, an equivalent of HTML `<a href=.../>`.
  * The primary property of a link is its [target] -- where should the user go when
- * clicking on the link. The children of a Link are inline elements that comprise the
- * visible portion of the link, i.e. the "text" of the link, even though it may have
+ * clicking on the link. The children of a LinkNode are inline elements that comprise
+ * the visible portion of the link, i.e. the "text" of the link, even though it may have
  * more complicated markup than plain text.
  *
  * In Wikitext, there are 3 primary forms of a link:
@@ -28,7 +28,7 @@ import { AstNode } from "./AstNode.js";
  *   - `[bleed]ing` -> `<a href="bleed">bleeding</a>`.
  *  This text fragment should be added via [addBleedingEnd()].
  */
-export class Link extends AstNode {
+export class LinkNode extends AstNode {
   constructor(target: string | null, children?: Array<AstNode>) {
     super(nodeTypes.link, children);
     this._target = target;
@@ -37,15 +37,11 @@ export class Link extends AstNode {
   }
 
   // When parsing Wikitext, the [target] will always be known. If parsing Wikimark,
-  // the target will not be initially known, but can be resolved later via the 
+  // the target will not be initially known, but can be resolved later via the
   // document root.
   private _target: string | null;
 
   private _hasBleedingEnd: boolean;
-
-  override allowsChild(node: AstNode): boolean {
-    return node.isInline;
-  }
 
   get target(): string {
     if (this._target === null) {
@@ -65,7 +61,7 @@ export class Link extends AstNode {
   }
 
   addBleedingEnd(text: string): void {
-    this.addChild(new Text(text));
+    this.addChild(new TextNode(text));
     this._hasBleedingEnd = true;
   }
 
@@ -77,7 +73,7 @@ export class Link extends AstNode {
 
   private _getInnerText(): string {
     let text = "";
-    let n = this.children.length - (this._hasBleedingEnd? 1 : 0);
+    let n = this.children.length - (this._hasBleedingEnd ? 1 : 0);
     for (let i = 0; i < n; i++) {
       text += this.children[i].toPlainText();
     }

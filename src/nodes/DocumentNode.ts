@@ -1,4 +1,4 @@
-import { LinkDefinition, nodeTypes } from "../nodes.js";
+import { LinkDefinitionNode, nodeTypes } from "../nodes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
@@ -14,14 +14,10 @@ import { AstNode } from "./AstNode.js";
  *       Header[2]
  *       ...
  */
-export class Document extends AstNode {
+export class DocumentNode extends AstNode {
   constructor(children?: Array<AstNode>) {
     super(nodeTypes.document, children);
     this.isInline = false;
-  }
-
-  override allowsChild(node: AstNode): boolean {
-    return !node.isInline;
   }
 
   override _writeWikimark(out: WikimarkWriter): void {
@@ -30,7 +26,7 @@ export class Document extends AstNode {
     super._writeWikimark(out);
   }
 
-  resolveLinkTarget(name: string): LinkDefinition | null {
+  resolveLinkTarget(name: string): LinkDefinitionNode | null {
     return null;
   }
 }

@@ -3,7 +3,7 @@ import { nodeTypes } from "../nodes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
-export class Text extends AstNode {
+export class TextNode extends AstNode {
   constructor(text: string) {
     super(nodeTypes.text);
     this.text = text;
@@ -11,10 +11,6 @@ export class Text extends AstNode {
   }
 
   public text: string;
-
-  override allowsChild(node: AstNode): boolean {
-    return false;
-  }
 
   override toPlainText(): string {
     return this.text;

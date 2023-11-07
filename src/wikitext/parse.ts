@@ -1,19 +1,19 @@
 import {
   AstNode,
-  Bold,
-  Document,
-  Header,
-  Italic,
-  Paragraph,
-  Text,
+  BoldNode,
+  DocumentNode,
+  HeaderNode,
+  ItalicNode,
+  ParagraphNode,
+  TextNode,
   nodeTypes,
 } from "../nodes.js";
-import { Link } from "../nodes/Link.js";
+import { LinkNode } from "../nodes/LinkNode.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
 
-export function parse(text: string): Document {
+export function parse(text: string): DocumentNode {
   const tokens = tokenize(text);
   const parser = new Parser(tokens);
   return parser.parse();
@@ -30,8 +30,8 @@ class Parser {
   protected position: number;
   private biDelimiters: Array<BINode>;
 
-  parse(): Document {
-    const root = new Document();
+  parse(): DocumentNode {
+    const root = new DocumentNode();
     this.processTemplates();
     this.position = 0;
     while (this.position < this.tokens.length) {
@@ -312,14 +312,14 @@ class Parser {
   private parseParagraph(parent: AstNode): boolean {
     let node = parent.lastChild;
     if (node !== null && node.type === nodeTypes.paragraph && node.isOpen) {
-      node.addChild(new Text(" "));
+      node.addChild(new TextNode(" "));
     } else {
       node?.setOpen(false);
-      node = new Paragraph();
+      node = new ParagraphNode();
       node.setOpen(true);
       parent.addChild(node);
     }
-    assert(node instanceof Paragraph);
+    assert(node instanceof ParagraphNode);
     this.parseInline(node);
     return true;
   }
@@ -368,7 +368,7 @@ class Parser {
           });
         }
 
-        const node = new Header(level);
+        const node = new HeaderNode(level);
         const parser = new Parser(middleTokens);
         parser.parseInline(node);
         assert(parser.position === middleTokens.length);
@@ -431,7 +431,7 @@ class Parser {
     if (token0.type === tokens.singleQuoteRun) {
       const n = token0.text.length;
       if (n === 1 || n === 4 || n >= 6) {
-        parent.addChild(new Text("'".repeat(Math.max(n - 5, 1))));
+        parent.addChild(new TextNode("'".repeat(Math.max(n - 5, 1))));
       }
       if (n === 2) this.addItalicDelimiter(parent);
       if (n === 3 || n === 4) this.addBoldDelimiter(parent);
@@ -548,12 +548,12 @@ class Parser {
     if (sig === "ib") {
       const node = this.biDelimiters[1];
       node.kind = "/i";
-      node.addSiblingBefore(new Text("'"));
+      node.addSiblingBefore(new TextNode("'"));
     }
     if (sig === "bi") {
       const node = this.biDelimiters[0];
       node.kind = "i";
-      node.addSiblingBefore(new Text("'"));
+      node.addSiblingBefore(new TextNode("'"));
       this.biDelimiters[1].kind = "/i";
     }
   }
@@ -564,14 +564,14 @@ class Parser {
     for (const node of nodes) {
       if (node instanceof BINode) {
         if (node.kind === "b" || node.kind === "i") {
-          const newNode = node.kind === "b" ? new Bold() : new Italic();
+          const newNode = node.kind === "b" ? new BoldNode() : new ItalicNode();
           current.addChild(newNode);
           current = newNode;
         } else if (node.kind === "/b") {
-          assert(current instanceof Bold);
+          assert(current instanceof BoldNode);
           current = current.parent!;
         } else if (node.kind === "/i") {
-          assert(current instanceof Italic);
+          assert(current instanceof ItalicNode);
           current = current.parent!;
         } else {
           assert(false, `Unexpected BINode: ${node.kind}`);
@@ -602,14 +602,14 @@ class Parser {
           token1.type === tokens.rightBracketRun && token1.text.length >= 2
         );
         if (token0.text.length > 2) {
-          parent.addChild(new Text("[".repeat(token0.text.length - 2)));
+          parent.addChild(new TextNode("[".repeat(token0.text.length - 2)));
         }
         parent.addChild(result);
         if (token1.text.length > 2) {
-          parent.addChild(new Text("]".repeat(token1.text.length - 2)));
+          parent.addChild(new TextNode("]".repeat(token1.text.length - 2)));
         }
         if (token1.text.length === 2) {
-          this.parseBleedingEnd(parent, result);
+          this.parseBleedingEnd(parent, result as LinkNode);
         }
         return true;
       }
@@ -665,7 +665,7 @@ class Parser {
     return null;
   }
 
-  private parseBleedingEnd(parent: AstNode, linkNode: Link): void {}
+  private parseBleedingEnd(parent: AstNode, linkNode: LinkNode): void {}
 
   private parseExternalLink(parent: AstNode, token0: Token): boolean {
     if (token0.type === tokens.leftBracketRun && token0.text.length % 2 === 1) {
@@ -690,10 +690,10 @@ class Parser {
     if (token0.type === tokens.whitespace) {
       let last = parent.lastChild;
       if (last === null || last.type !== nodeTypes.text) {
-        last = new Text("");
+        last = new TextNode("");
         parent.addChild(last);
       }
-      (last as Text).text += " ";
+      (last as TextNode).text += " ";
       this.position++;
       return true;
     }
@@ -701,7 +701,7 @@ class Parser {
   }
 
   private parseInlineText(parent: AstNode, token0: Token): boolean {
-    parent.addChild(new Text(token0.text));
+    parent.addChild(new TextNode(token0.text));
     this.position++;
     return true;
   }

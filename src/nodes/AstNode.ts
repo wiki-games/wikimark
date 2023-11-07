@@ -1,4 +1,4 @@
-import { Document, Text, nodeTypes } from "../nodes.js";
+import { DocumentNode, TextNode, nodeTypes } from "../nodes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { ok as assert } from "devlop";
 
@@ -53,9 +53,9 @@ export abstract class AstNode {
   /**
    * Returns the root of the document tree, or throws an error if the document
    */
-  get root(): Document {
+  get root(): DocumentNode {
     if (this._parent === null) {
-      if (!(this instanceof Document)) {
+      if (!(this instanceof DocumentNode)) {
         throw Error(`Node ${this} is not attached to a document tree`);
       }
       return this;
@@ -114,15 +114,11 @@ export abstract class AstNode {
   // Node tree construction
   //------------------------------------------------------------------------------------
 
-  allowsChild(node: AstNode): boolean {
-    return true;
-  }
-
   addChild(node: AstNode): void {
     if (node.type === nodeTypes.text) {
       const lastChild = this.lastChild;
       if (lastChild?.type === nodeTypes.text) {
-        (lastChild! as Text).text += (node as Text).text;
+        (lastChild! as TextNode).text += (node as TextNode).text;
         return;
       }
     }

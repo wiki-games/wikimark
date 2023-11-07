@@ -1,13 +1,13 @@
 export { AstNode } from "./nodes/AstNode.js";
-export { Bold } from "./nodes/Bold.js";
-export { CodeBlock } from "./nodes/CodeBlock.js";
-export { Document } from "./nodes/Document.js";
-export { Header } from "./nodes/Header.js";
-export { Italic } from "./nodes/Italic.js";
-export { Link } from "./nodes/Link.js";
-export { LinkDefinition } from "./nodes/LinkDefinition.js";
-export { Paragraph } from "./nodes/Paragraph.js";
-export { Text } from "./nodes/Text.js";
+export { BoldNode } from "./nodes/BoldNode.js";
+export { CodeBlockNode } from "./nodes/CodeBlockNode.js";
+export { DocumentNode } from "./nodes/DocumentNode.js";
+export { HeaderNode } from "./nodes/HeaderNode.js";
+export { ItalicNode } from "./nodes/ItalicNode.js";
+export { LinkNode } from "./nodes/LinkNode.js";
+export { LinkDefinitionNode } from "./nodes/LinkDefinitionNode.js";
+export { ParagraphNode } from "./nodes/ParagraphNode.js";
+export { TextNode } from "./nodes/TextNode.js";
 
 export const nodeTypes = {
   bold: "Bold",
