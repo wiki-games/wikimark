@@ -218,6 +218,12 @@ based on observation (trying various markups in Wikipedia's sandbox).
     pre-processed similar to templates:
     - `== [[Wikipedia|\n\nEncyclopedia]] ==` =>
       `== <a href="Wikipedia">Encyclopedia</a> ==`
+  - At the same time, the content of a link may sometimes contain even block formatting,
+    though it doesn't work consistently:
+    - `[[Wikipedia|\n==header==\n# one\n# two]]` =>
+      `<a href="Wikipedia"><h2>header</h2><p># one # two</p></a>`
+    - It is probably best not to engage in this kind of frivolities, and simply 
+      suppress all newlines inside a link.
   - There are no named arguments to a link, so `=` sign is treated verbatim:
     - `[[one|title=2]]` -> `<a href="one">title=2</a>`
   - Since the link can have only one parameter, all subsequent pipe characters are

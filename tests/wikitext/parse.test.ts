@@ -7,6 +7,7 @@ import {
   DocumentNode,
   HeaderNode,
   ItalicNode,
+  LinkNode,
   ParagraphNode,
   TextNode,
 } from "../../src/nodes.js";
@@ -449,6 +450,216 @@ describe("Bold/italic", () => {
       ]),
       new TextNode(" three"),
     ]);
+  });
+});
+
+describe("Links", () => {
+  test("Simple link", () => {
+    expect(parse("[[Hello]]", "")).toEqual(
+      new DocumentNode([new ParagraphNode([new LinkNode("Hello")])])
+    );
+  });
+
+  test("Simple link2", () => {
+    expect(parse("[[Hello, world!]]", "")).toEqual(
+      new DocumentNode([new ParagraphNode([new LinkNode("Hello, world!")])])
+    );
+  });
+
+  test("Links starting with [[", () => {
+    function check(text: string, nodes: Array<AstNode>): void {
+      expect(parse(text, "")).toEqual(
+        new DocumentNode([new ParagraphNode(nodes)])
+      );
+    }
+    check("[[link", [new TextNode("[[link")]);
+    check("[[link]", [new TextNode("[[link]")]);
+    check("[[link]]", [new LinkNode("link")]);
+    check("[[link]]]", [new LinkNode("link"), new TextNode("]")]);
+    check("[[link]]]]", [new LinkNode("link"), new TextNode("]]")]);
+    check("[[link]]]]]", [new LinkNode("link"), new TextNode("]]]")]);
+  });
+
+  test("Links starting with [[[", () => {
+    function check(text: string, nodes: Array<AstNode>): void {
+      expect(parse(text, "")).toEqual(
+        new DocumentNode([new ParagraphNode(nodes)])
+      );
+    }
+    check("[[[link", [new TextNode("[[[link")]);
+    check("[[[link]", [new TextNode("[[[link]")]);
+    check("[[[link]]", [new TextNode("[[[link]]")]);
+    check("[[[link]]]", [new TextNode("[[[link]]]")]);
+    check("[[[link]]]]", [new TextNode("[[[link]]]]")]);
+  });
+
+  test("Links starting with [[[[", () => {
+    function check(text: string, nodes: Array<AstNode>): void {
+      expect(parse(text, "")).toEqual(
+        new DocumentNode([new ParagraphNode(nodes)])
+      );
+    }
+    check("[[[[link", [new TextNode("[[[[link")]);
+    check("[[[[link]", [new TextNode("[[[[link]")]);
+    check("[[[[link]]", [new TextNode("[["), new LinkNode("link")]);
+    check("[[[[link]]]", [
+      new TextNode("[["),
+      new LinkNode("link"),
+      new TextNode("]"),
+    ]);
+    check("[[[[link]]]]", [
+      new TextNode("[["),
+      new LinkNode("link"),
+      new TextNode("]]"),
+    ]);
+    check("[[[[link]]]]]", [
+      new TextNode("[["),
+      new LinkNode("link"),
+      new TextNode("]]]"),
+    ]);
+  });
+
+  test("Links starting with even more brackets", () => {
+    function check(text: string, nodes: Array<AstNode>): void {
+      expect(parse(text, "")).toEqual(
+        new DocumentNode([new ParagraphNode(nodes)])
+      );
+    }
+    check("[[[[[link]]", [new TextNode("[[[[[link]]")]);
+    check("[[[[[link]]]", [new TextNode("[[[[[link]]]")]);
+    check("[[[[[link]]]]", [new TextNode("[[[[[link]]]]")]);
+    check("[[[[[[link]]", [new TextNode("[[[["), new LinkNode("link")]);
+    check("[[[[[[link]]]", [
+      new TextNode("[[[["),
+      new LinkNode("link"),
+      new TextNode("]"),
+    ]);
+    check("[[[[[[link]]]]", [
+      new TextNode("[[[["),
+      new LinkNode("link"),
+      new TextNode("]]"),
+    ]);
+    check("[[[[[[link]]]]]", [
+      new TextNode("[[[["),
+      new LinkNode("link"),
+      new TextNode("]]]"),
+    ]);
+  });
+
+  test("Link that looks like markup but isn't", () => {
+    expect(parse("[[''one'']]", "")).toEqual(
+      new DocumentNode([new ParagraphNode([new LinkNode("''one''")])])
+    );
+  });
+
+  test("Forbidden link characters", () => {
+    function check(text: string, nodes: Array<AstNode>): void {
+      expect(parse(text, "")).toEqual(
+        new DocumentNode([new ParagraphNode(nodes)])
+      );
+    }
+    check("[[link<]]", [new TextNode("[[link<]]")]);
+    check("[[link>]]", [new TextNode("[[link>]]")]);
+    check("[[with [ bracket]]]", [new TextNode("[[with [ bracket]]]")]);
+    check("[[with ] bracket]]", [new TextNode("[[with ] bracket]]")]);
+    check("[[with { brace]]", [new TextNode("[[with { brace]]")]);
+    check("[[with } brace]]", [new TextNode("[[with } brace]]")]);
+    check("[[link\ntwo]]", [new TextNode("[[link two]]")]);
+  });
+
+  test("Link with a comment", () => {
+    expect(parse("[[this <!-- is | a --> link]]", "")).toEqual(
+      new DocumentNode([new ParagraphNode([new LinkNode("this  link")])])
+    );
+  });
+
+  test("Renamed link", () => {
+    expect(parse("[[one|two]]", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([new LinkNode("one", [new TextNode("two")])]),
+      ])
+    );
+  });
+
+  test("Renamed link with formatting", () => {
+    expect(parse("[[one|''two'']]", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([
+          new LinkNode("one", [new ItalicNode([new TextNode("two")])]),
+        ]),
+      ])
+    );
+  });
+
+  test("Renamed link with another link inside", () => {
+    expect(parse("[[one|[[two]] three]]", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([
+          new TextNode("[[one|"),
+          new LinkNode("two"),
+          new TextNode(" three]]"),
+        ]),
+      ])
+    );
+  });
+
+  test("Renamed link with newlines", () => {
+    expect(parse("[[one|two\n==three==\n# four\n]]", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([
+          new LinkNode("one", [new TextNode("two ==three== # four ")]),
+        ]),
+      ])
+    );
+  });
+
+  test("Renamed link with = character", () => {
+    expect(parse("[[one|title=2]]", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([new LinkNode("one", [new TextNode("title=2")])]),
+      ])
+    );
+  });
+
+  test("Renamed link with pipe character", () => {
+    expect(parse("[[one|two|three]]", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([new LinkNode("one", [new TextNode("two|three")])]),
+      ])
+    );
+  });
+
+  test("Bleeding links", () => {
+    function check(text: string, nodes: Array<AstNode>): void {
+      expect(parse(text, "")).toEqual(
+        new DocumentNode([new ParagraphNode(nodes)])
+      );
+    }
+    check("[[one]]ness", [new LinkNode("one").addBleedingEnd("ness")]);
+    check("[[bus]]es extra", [
+      new LinkNode("bus").addBleedingEnd("es"),
+      new TextNode(" extra"),
+    ]);
+    check("[[special]]-ity", [new LinkNode("special"), new TextNode("-ity")]);
+  });
+
+  test("Pipe tricks", () => {
+    function check(target: string, linkText: string): void {
+      expect(parse(`[[${target}|]]`, "")).toEqual(
+        new DocumentNode([
+          new ParagraphNode([new LinkNode(target, [new TextNode(linkText)])]),
+        ])
+      );
+    }
+    check("Pipe (computing)", "Pipe");
+    check("Phoenix, Arizona", "Phoenix");
+    check("Wikipedia:Verifiability", "Verifiability");
+    check("User:Example", "Example");
+    check(":Category:Wikipedia", "Wikipedia");
+    check("Yours, Mine and Ours (1968 film)", "Yours, Mine and Ours");
+    check(":es:Wikipedia:Políticas", "Wikipedia:Políticas");
+    check("Il Buono, il Brutto, il Cattivo", "Il Buono");
+    check("Wikipedia:Manual of Style (Persian)", "Manual of Style");
   });
 });
 

@@ -62,7 +62,10 @@ export class LinkNode extends AstNode {
     return /^https?:\/\//.test(this.target);
   }
 
-  addBleedingEnd(text: string): void {
+  addBleedingEnd(text: string): this {
+    if (this.children.length === 0 && this._target !== null) {
+      this.addChild(new TextNode(this._target));
+    }
     // Normally, when adding a text node it will merge with any existing text node.
     // In order to artificially keep them separate, we temporary create a "barrier"
     // between them using a comment node.
@@ -72,6 +75,7 @@ export class LinkNode extends AstNode {
     this.addChild(tail);
     this.removeChild(comment);
     this._hasBleedingEnd = true;
+    return this;
   }
 
   override _writeWikimark(out: WikimarkWriter): void {

@@ -9,6 +9,7 @@ import {
   nodeTypes,
 } from "../nodes.js";
 import { LinkNode } from "../nodes/LinkNode.js";
+import { isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
@@ -589,6 +590,7 @@ class Parser {
   private parseInternalLink(parent: AstNode, token0: Token): boolean {
     const pos0 = this.position;
     if (token0.type === tokens.leftBracketRun && token0.text.length % 2 === 0) {
+      this.position++;
       const target = this.parseInternalLinkTarget();
       let result: AstNode | null = null;
       if (target === null) {
@@ -610,8 +612,8 @@ class Parser {
         if (token1.text.length > 2) {
           parent.addChild(new TextNode("]".repeat(token1.text.length - 2)));
         }
-        if (token1.text.length === 2) {
-          this.parseBleedingEnd(parent, result as LinkNode);
+        if (token1.text.length === 2 && result instanceof LinkNode) {
+          this.parseBleedingEnd(result);
         }
         return true;
       }
@@ -631,11 +633,11 @@ class Parser {
         case tokens.commentBody:
         case tokens.commentEnd:
           break;
+        case tokens.leftAngleBracket:
         case tokens.leftBraceRun:
         case tokens.leftBracketRun:
-        case tokens.rightBracketRun:
-        case tokens.leftAngleBracket:
         case tokens.rightAngleBracket:
+        case tokens.rightBraceRun:
         case tokens.htmlTagStart:
         case tokens.htmlEntity:
         case tokens.newline:
@@ -660,6 +662,49 @@ class Parser {
    * page link (if present), and return the resulting [Link] node.
    */
   private parsePageLink(target: string): AstNode | null {
+    const token0 = this.tokenAt(0);
+    if (token0?.type === tokens.rightBracketRun) {
+      if (token0.text.length < 2) return null;
+      return new LinkNode(target);
+    }
+    if (token0?.type === tokens.pipe) {
+      const innerTokens: Array<Token> = [];
+      let i = 1;
+      while (true) {
+        const token1 = this.tokenAt(i);
+        if (token1 === null) return null;
+        if (token1.type === tokens.leftBracketRun) return null;
+        if (token1.type === tokens.rightBracketRun) {
+          if (token1.text.length < 2) return null;
+          break;
+        }
+        if (token1.type === tokens.newline) {
+          innerTokens.push({
+            type: tokens.whitespace,
+            text: " ",
+            start: token1.start,
+            end: token1.end,
+          });
+        } else {
+          innerTokens.push(token1);
+        }
+        i++;
+      }
+      this.position += i;
+      const parser = new Parser(innerTokens, this.page_title);
+      const doc = parser.parse();
+      const nodesToAdd: Array<AstNode> = [];
+      for (const child of doc.removeAllChildren()) {
+        nodesToAdd.push(...child.removeAllChildren());
+      }
+      if (nodesToAdd.length === 0) {
+        const trickedTarget = this.resolvePipeTrick(target);
+        if (trickedTarget !== null) {
+          nodesToAdd.push(new TextNode(trickedTarget));
+        }
+      }
+      return new LinkNode(target, nodesToAdd);
+    }
     return null;
   }
 
@@ -667,7 +712,38 @@ class Parser {
     return null;
   }
 
-  private parseBleedingEnd(parent: AstNode, linkNode: LinkNode): void {}
+  private parseBleedingEnd(linkNode: LinkNode): void {
+    const token0 = this.tokenAt(0);
+    if (token0?.type === tokens.text) {
+      const text = token0.text;
+      let i = 0;
+      while (i < text.length && isAlphaNum(text.charCodeAt(i))) {
+        i++;
+      }
+      if (i > 0) {
+        linkNode.addBleedingEnd(text.substring(0, i));
+        token0.text = text.substring(i);
+      }
+    }
+  }
+
+  private resolvePipeTrick(target: string): string | null {
+    let result = target;
+    const match1 = /^(.*) \(.*\)$/.exec(target);
+    if (match1) {
+      result = match1[1];
+    } else {
+      const match2 = /^(.*?), .*$/.exec(target);
+      if (match2) {
+        result = match2[1];
+      }
+    }
+    const match3 = /^:?\w+:(.*)$/.exec(result);
+    if (match3) {
+      result = match3[1];
+    }
+    return result === target ? null : result;
+  }
 
   private parseExternalLink(parent: AstNode, token0: Token): boolean {
     if (token0.type === tokens.leftBracketRun && token0.text.length % 2 === 1) {
@@ -703,7 +779,9 @@ class Parser {
   }
 
   private parseInlineText(parent: AstNode, token0: Token): boolean {
-    parent.addChild(new TextNode(token0.text));
+    if (token0.text.length > 0) {
+      parent.addChild(new TextNode(token0.text));
+    }
     this.position++;
     return true;
   }
