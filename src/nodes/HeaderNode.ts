@@ -29,9 +29,9 @@ export class HeaderNode extends AstNode {
       out.writeNewline();
     }
     for (let i = 0; i < this.level; i++) {
-      out.write(codes.numberSign);
+      out.writeChar(codes.numberSign);
     }
-    out.write(codes.space);
+    out.writeChar(codes.space);
     super._writeWikimark(out);
     out.writeNewline();
   }

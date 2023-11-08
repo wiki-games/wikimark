@@ -15,8 +15,8 @@ export class ItalicNode extends AstNode {
       !this.findChildOfType(nodeTypes.italic),
       "An Italic node cannot contain other italic nodes inside"
     );
-    out.write(codes.slash);
+    out.writeChar(codes.slash);
     super._writeWikimark(out);
-    out.write(codes.slash);
+    out.writeChar(codes.slash);
   }
 }

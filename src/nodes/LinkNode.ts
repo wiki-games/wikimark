@@ -1,4 +1,4 @@
-import { TextNode, nodeTypes } from "../nodes.js";
+import { CommentNode, TextNode, nodeTypes } from "../nodes.js";
 import { codes } from "../utils/codes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
@@ -26,7 +26,7 @@ import { AstNode } from "./AstNode.js";
  * text immediately after the link becomes part of the link's text but not link's
  * target:
  *   - `[bleed]ing` -> `<a href="bleed">bleeding</a>`.
- *  This text fragment should be added via [addBleedingEnd()].
+ * This text fragment should be added via [addBleedingEnd()].
  */
 export class LinkNode extends AstNode {
   constructor(target: string | null, children?: Array<AstNode>) {
@@ -41,6 +41,8 @@ export class LinkNode extends AstNode {
   // document root.
   private _target: string | null;
 
+  // When this is true, the last child represents the "bleeding end" of a node, and
+  // should be rendered outside of the link's square brackets.
   private _hasBleedingEnd: boolean;
 
   get target(): string {
@@ -61,14 +63,31 @@ export class LinkNode extends AstNode {
   }
 
   addBleedingEnd(text: string): void {
-    this.addChild(new TextNode(text));
+    // Normally, when adding a text node it will merge with any existing text node.
+    // In order to artificially keep them separate, we temporary create a "barrier"
+    // between them using a comment node.
+    const comment = new CommentNode("");
+    const tail = new TextNode(text);
+    this.addChild(comment);
+    this.addChild(tail);
+    this.removeChild(comment);
     this._hasBleedingEnd = true;
   }
 
   override _writeWikimark(out: WikimarkWriter): void {
-    out.write(codes.bracketLeft);
-    super._writeWikimark(out);
-    out.write(codes.bracketRight);
+    // Note: the Wikimark representation of a Link doesn't include the `target`. It is
+    // the job of a linter to verify that either the target is the same as the display
+    // text of the link, or that there is a LinkDefinition node somewhere in the
+    // document.
+    out.writeChar(codes.bracketLeft);
+    let n = this.children.length - (this._hasBleedingEnd ? 1 : 0);
+    for (let i = 0; i < n; i++) {
+      this.children[i]._writeWikimark(out);
+    }
+    out.writeChar(codes.bracketRight);
+    if (this._hasBleedingEnd) {
+      this.lastChild!._writeWikimark(out);
+    }
   }
 
   private _getInnerText(): string {

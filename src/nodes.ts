@@ -1,6 +1,7 @@
 export { AstNode } from "./nodes/AstNode.js";
 export { BoldNode } from "./nodes/BoldNode.js";
 export { CodeBlockNode } from "./nodes/CodeBlockNode.js";
+export { CommentNode } from "./nodes/CommentNode.js";
 export { DocumentNode } from "./nodes/DocumentNode.js";
 export { HeaderNode } from "./nodes/HeaderNode.js";
 export { ItalicNode } from "./nodes/ItalicNode.js";
@@ -12,6 +13,7 @@ export { TextNode } from "./nodes/TextNode.js";
 export const nodeTypes = {
   bold: "Bold",
   codeBlock: "CodeBlock",
+  comment: "Comment",
   document: "Document",
   header: "Header",
   image: "Image",

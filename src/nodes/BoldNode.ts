@@ -15,8 +15,8 @@ export class BoldNode extends AstNode {
       !this.findChildOfType(nodeTypes.bold),
       "A Bold node cannot contain other bold nodes inside"
     );
-    out.write(codes.asterisk);
+    out.writeChar(codes.asterisk);
     super._writeWikimark(out);
-    out.write(codes.asterisk);
+    out.writeChar(codes.asterisk);
   }
 }

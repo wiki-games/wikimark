@@ -3,8 +3,7 @@ import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { ok as assert } from "devlop";
 
 /**
- * [AstNode] is a base class for all structural elements that comprise a
- * document.
+ * [AstNode] is a base class for all structural elements that comprise a document.
  */
 export abstract class AstNode {
   constructor(type: string, children?: Array<AstNode>) {
@@ -15,7 +14,7 @@ export abstract class AstNode {
     children?.forEach((node) => this.addChild(node));
   }
 
-  private _type: string;
+  private readonly _type: string;
   private _parent: AstNode | null;
   private _children: Array<AstNode>;
   private _isOpen?: boolean; // Temporary flag used by the parser
@@ -25,8 +24,9 @@ export abstract class AstNode {
   //------------------------------------------------------------------------------------
 
   /**
-   * The nodes's [type], one of the constants in `nodeTypes` enum. This type is
-   * in one-to-one correspondence with the node's class name.
+   * The nodes's [type], one of the constants in `nodeTypes` enum. This type is in
+   * one-to-one correspondence with the node's class name. Once a node is created, its
+   * type doesn't change.
    */
   get type(): string {
     return this._type;
@@ -51,7 +51,8 @@ export abstract class AstNode {
   }
 
   /**
-   * Returns the root of the document tree, or throws an error if the document
+   * Returns the root of the document tree, or throws an error if the node is not
+   * currently attached to a document tree.
    */
   get root(): DocumentNode {
     if (this._parent === null) {
@@ -72,6 +73,10 @@ export abstract class AstNode {
   // Serialization
   //------------------------------------------------------------------------------------
 
+  /**
+   * Plain-text representation of the node, without any markup. If the node doesn't 
+   * have any text content (like an image), this should return an empty string.
+   */
   toPlainText(): string {
     let out = "";
     for (const child of this._children) {

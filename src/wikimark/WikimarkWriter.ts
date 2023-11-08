@@ -4,7 +4,7 @@ import { Code, codes } from "../utils/codes.js";
 /**
  * Helper class to serialize an AST node tree into a Wikimark text.
  */
-export  class WikimarkWriter {
+export class WikimarkWriter {
   constructor() {
     this._codes = [];
     this._linePrefix = [];
@@ -31,7 +31,7 @@ export  class WikimarkWriter {
     return this.column === 0;
   }
 
-  write(code: Code): void {
+  writeChar(code: Code): void {
     assert(code >= 0x20);
     this._handleStartOfLine();
     this._codes.push(code);
@@ -47,6 +47,24 @@ export  class WikimarkWriter {
     this._squashWhitespace();
     this._codes.push(10); // LF char
     this._startOfLineIndex = this._codes.length;
+  }
+
+  writeText(text: string): void {
+    if (!text) return;
+    if (this.atStartOfLine) {
+      const code0 = text.charCodeAt(0);
+      if (CODES_TO_ESCAPE_AT_START_OF_LINE.has(code0)) {
+        this.writeChar(codes.backslash);
+      }
+    }
+    const n = text.length;
+    for (let i = 0; i < n; i++) {
+      const code = text.charCodeAt(i);
+      if (CODES_TO_ESCAPE.has(code)) {
+        this.writeChar(codes.backslash);
+      }
+      this.writeChar(code);
+    }
   }
 
   addLinePrefix(prefix: Array<Code>): void {
@@ -75,3 +93,18 @@ export  class WikimarkWriter {
     }
   }
 }
+
+const CODES_TO_ESCAPE = new Set<Code>([
+  codes.asterisk,
+  codes.backslash,
+  codes.backtick,
+  codes.braceLeft,
+  codes.bracketLeft,
+  codes.underscore,
+]);
+
+const CODES_TO_ESCAPE_AT_START_OF_LINE = new Set<Code>([
+  codes.hyphen,
+  codes.numberSign,
+  codes.space,
+]);
