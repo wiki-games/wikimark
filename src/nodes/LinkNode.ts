@@ -47,7 +47,7 @@ export class LinkNode extends AstNode {
 
   get target(): string {
     if (this._target === null) {
-      const targetText = this._getInnerText();
+      const targetText = this.getImpliedTarget();
       const definitionNode = this.root.resolveLinkTarget(targetText);
       if (definitionNode === null) {
         this._target = targetText;
@@ -90,7 +90,7 @@ export class LinkNode extends AstNode {
     }
   }
 
-  private _getInnerText(): string {
+  getImpliedTarget(): string {
     let text = "";
     let n = this.children.length - (this._hasBleedingEnd ? 1 : 0);
     for (let i = 0; i < n; i++) {
