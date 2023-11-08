@@ -1,8 +1,13 @@
 import { expect, test } from "vitest";
-import { Document, Header, Paragraph, Text } from "../../src/nodes.js";
+import {
+  DocumentNode,
+  HeaderNode,
+  ParagraphNode,
+  TextNode,
+} from "../../src/nodes.js";
 
 test("Simple header", () => {
-  const ast = new Document([new Header(1, [new Text("Header 1")])]);
+  const ast = new DocumentNode([new HeaderNode(1, [new TextNode("Header 1")])]);
   expect(ast.toPlainText()).toBe("Header 1");
   expect(ast.toWikimark()).toBe("\n# Header 1\n");
   expect(ast.toDebugTree()).toBe(
@@ -16,10 +21,10 @@ test("Simple header", () => {
 });
 
 test("Header and paragraphs", () => {
-  const ast = new Document([
-    new Paragraph([new Text("First paragraph")]),
-    new Header(2, [new Text("Some header")]),
-    new Paragraph([new Text("Last paragraph")]),
+  const ast = new DocumentNode([
+    new ParagraphNode([new TextNode("First paragraph")]),
+    new HeaderNode(2, [new TextNode("Some header")]),
+    new ParagraphNode([new TextNode("Last paragraph")]),
   ]);
   expect(ast.toWikimark()).toBe(
     [
@@ -48,10 +53,10 @@ test("Header and paragraphs", () => {
 });
 
 test("Multiple headers", () => {
-  const ast = new Document([
-    new Header(2, [new Text("First header")]),
-    new Header(4, [new Text("Second header")]),
-    new Header(6, [new Text("Third header")]),
+  const ast = new DocumentNode([
+    new HeaderNode(2, [new TextNode("First header")]),
+    new HeaderNode(4, [new TextNode("Second header")]),
+    new HeaderNode(6, [new TextNode("Third header")]),
   ]);
   expect(ast.toWikimark()).toBe(
     [
@@ -79,9 +84,9 @@ test("Multiple headers", () => {
 });
 
 test("Header with hash signs", () => {
-  const ast = new Document([
-    new Header(1, [new Text("# one ## two #")]),
-    new Header(2, [new Text("- also header")]),
+  const ast = new DocumentNode([
+    new HeaderNode(1, [new TextNode("# one ## two #")]),
+    new HeaderNode(2, [new TextNode("- also header")]),
   ]);
   expect(ast.toWikimark()).toBe(
     [
@@ -89,7 +94,7 @@ test("Header with hash signs", () => {
       "# # one ## two #",
       "",
       "## - also header",
-      ""
+      "",
     ].join("\n")
   );
   expect(ast.toDebugTree()).toBe(

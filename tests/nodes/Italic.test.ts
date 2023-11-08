@@ -1,9 +1,15 @@
 import { expect, test } from "vitest";
-import { Document, Paragraph, Italic, Text, Header } from "../../src/nodes.js";
+import {
+  DocumentNode,
+  ParagraphNode,
+  ItalicNode,
+  TextNode,
+  HeaderNode,
+} from "../../src/nodes.js";
 
 test("Simple italic", () => {
-  const ast = new Document([
-    new Paragraph([new Italic([new Text("This text is italic")])]),
+  const ast = new DocumentNode([
+    new ParagraphNode([new ItalicNode([new TextNode("This text is italic")])]),
   ]);
   expect(ast.toPlainText()).toBe("This text is italic");
   expect(ast.toDebugTree()).toBe(
@@ -19,12 +25,12 @@ test("Simple italic", () => {
 });
 
 test("Italic and loose stars", () => {
-  const ast = new Document([
-    new Header(2, [new Italic([new Text("Italic header")])]),
-    new Paragraph([
-      new Text("Normal text (with *s) "),
-      new Italic([new Text("ita*lic")]),
-      new Text(" more text"),
+  const ast = new DocumentNode([
+    new HeaderNode(2, [new ItalicNode([new TextNode("Italic header")])]),
+    new ParagraphNode([
+      new TextNode("Normal text (with *s) "),
+      new ItalicNode([new TextNode("ita*lic")]),
+      new TextNode(" more text"),
     ]),
   ]);
   expect(ast.toDebugTree()).toBe(
@@ -38,7 +44,7 @@ test("Italic and loose stars", () => {
       "    Italic:",
       "      Text: ita*lic",
       "    Text:  more text",
-      ""
+      "",
     ].join("\n")
   );
   expect(ast.toWikimark()).toBe(
@@ -47,7 +53,7 @@ test("Italic and loose stars", () => {
       "## /Italic header/",
       "",
       "Normal text (with \\*s) /ita\\*lic/ more text",
-      ""
+      "",
     ].join("\n")
   );
 });

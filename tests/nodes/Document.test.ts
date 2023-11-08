@@ -1,14 +1,16 @@
 import { expect, test } from "vitest";
-import { Document, Paragraph, Text } from "../../src/nodes.js";
+import { DocumentNode, ParagraphNode, TextNode } from "../../src/nodes.js";
 
 test("Empty document", () => {
-  const ast = new Document();
+  const ast = new DocumentNode();
   expect(ast.toWikimark()).toBe("");
   expect(ast.toDebugTree()).toBe("Document\n");
 });
 
 test("Simple document", () => {
-  const ast = new Document([new Paragraph([new Text("Hello, world!")])]);
+  const ast = new DocumentNode([
+    new ParagraphNode([new TextNode("Hello, world!")]),
+  ]);
   expect(ast.toWikimark()).toBe("\nHello, world!\n");
   expect(ast.toDebugTree()).toBe(
     [

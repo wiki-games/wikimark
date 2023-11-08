@@ -94,6 +94,10 @@ export class LinkNode extends AstNode {
     }
   }
 
+  override toString(): string {
+    return `Link: ${this.target}`;
+  }
+
   getImpliedTarget(): string {
     let text = "";
     let n = this.children.length - (this._hasBleedingEnd ? 1 : 0);
