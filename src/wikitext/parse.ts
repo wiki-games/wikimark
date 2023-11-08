@@ -13,22 +13,24 @@ import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
 
-export function parse(text: string): DocumentNode {
+export function parse(text: string, page_title: string): DocumentNode {
   const tokens = tokenize(text);
-  const parser = new Parser(tokens);
+  const parser = new Parser(tokens, page_title);
   return parser.parse();
 }
 
 class Parser {
-  constructor(tokens: Array<Token>) {
+  constructor(tokens: Array<Token>, page_title: string) {
     this.tokens = tokens;
     this.position = 0;
     this.biDelimiters = [];
+    this.page_title = page_title;
   }
 
-  protected tokens: Array<Token>;
-  protected position: number;
+  private tokens: Array<Token>;
+  private position: number;
   private biDelimiters: Array<BINode>;
+  private page_title: string;
 
   parse(): DocumentNode {
     const root = new DocumentNode();
@@ -369,7 +371,7 @@ class Parser {
         }
 
         const node = new HeaderNode(level);
-        const parser = new Parser(middleTokens);
+        const parser = new Parser(middleTokens, this.page_title);
         parser.parseInline(node);
         assert(parser.position === middleTokens.length);
         parent.lastChild?.setOpen(false);
