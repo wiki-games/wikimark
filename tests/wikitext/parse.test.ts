@@ -24,7 +24,7 @@ test("Empty document", () => {
 describe("Paragraphs", () => {
   test("Simple text", () => {
     expect(parse("Simple text", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new TextNode("Simple text")])])
+      SingleParagraph(Text("Simple text"))
     );
   });
 
@@ -38,14 +38,9 @@ describe("Paragraphs", () => {
         ""
       )
     ).toEqual(
-      new DocumentNode([
-        new ParagraphNode([
-          new TextNode(
-            // TODO: fix extra spaces
-            "This paragraph contains multiple lines even if it's just  one sentence."
-          ),
-        ]),
-      ])
+      SingleParagraph(
+        "This paragraph contains multiple lines even if it's just  one sentence."
+      )
     );
   });
 
@@ -61,80 +56,66 @@ describe("Paragraphs", () => {
       )
     ).toEqual(
       new DocumentNode([
-        new ParagraphNode([new TextNode("Paragraph one.")]),
-        new ParagraphNode([
-          new TextNode("Another paragraph that may span several lines."),
-        ]),
-        new ParagraphNode([new TextNode("Third paragraph, just for fun.")]),
+        Paragraph("Paragraph one."),
+        Paragraph("Another paragraph that may span several lines."),
+        Paragraph("Third paragraph, just for fun."),
       ])
     );
   });
 
   test("Paragraph with a comment", () => {
     expect(parse("Para <!-- 1\n\n2\n\n  --> one", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new TextNode("Para  one")])])
+      SingleParagraph("Para  one")
     );
   });
 });
 
 describe("Headers", () => {
   test("Simple header", () => {
-    expect(parse("=Simple=", "")).toEqual(
-      new DocumentNode([new HeaderNode(1, [new TextNode("Simple")])])
-    );
+    expect(parse("=Simple=", "")).toEqual(SingleHeader(1, "Simple"));
   });
 
   test("Not a header", () => {
-    expect(parse("==\n", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new TextNode("==")])])
-    );
+    expect(parse("==\n", "")).toEqual(SingleParagraph("=="));
   });
 
   test("Not a header again", () => {
     expect(parse("=== Looks like a header", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([new TextNode("=== Looks like a header")]),
-      ])
+      SingleParagraph("=== Looks like a header")
     );
   });
 
   test("Header with whitespace", () => {
     expect(parse("==  Header two ==", "")).toEqual(
-      new DocumentNode([new HeaderNode(2, [new TextNode("Header two")])])
+      SingleHeader(2, "Header two")
     );
   });
 
   test("Mismatched header, left", () => {
     expect(parse("=== Another header =", "")).toEqual(
-      new DocumentNode([new HeaderNode(1, [new TextNode("== Another header")])])
+      SingleHeader(1, "== Another header")
     );
   });
 
   test("Mismatched header, right", () => {
     expect(parse("=  Another header ====", "")).toEqual(
-      new DocumentNode([
-        new HeaderNode(1, [new TextNode("Another header ===")]),
-      ])
+      SingleHeader(1, "Another header ===")
     );
   });
 
   test("Header terminates a paragraph", () => {
     expect(parse("Hello,\n==world==\n!", "")).toEqual(
       new DocumentNode([
-        new ParagraphNode([new TextNode("Hello,")]),
-        new HeaderNode(2, [new TextNode("world")]),
-        new ParagraphNode([new TextNode("!")]),
+        Paragraph("Hello,"),
+        Header(2, "world"),
+        Paragraph("!"),
       ])
     );
   });
 
   test("Consecutive headers", () => {
     expect(parse("==H1==\n==H2==\n==H3==\n", "")).toEqual(
-      new DocumentNode([
-        new HeaderNode(2, [new TextNode("H1")]),
-        new HeaderNode(2, [new TextNode("H2")]),
-        new HeaderNode(2, [new TextNode("H3")]),
-      ])
+      new DocumentNode([Header(2, "H1"), Header(2, "H2"), Header(2, "H3")])
     );
   });
 
@@ -146,512 +127,292 @@ describe("Headers", () => {
       )
     ).toEqual(
       new DocumentNode([
-        new HeaderNode(1, [new TextNode("H1")]),
-        new HeaderNode(2, [new TextNode("H2")]),
-        new HeaderNode(3, [new TextNode("H3")]),
-        new HeaderNode(4, [new TextNode("H4")]),
-        new HeaderNode(5, [new TextNode("H5")]),
-        new HeaderNode(6, [new TextNode("H6")]),
+        Header(1, "H1"),
+        Header(2, "H2"),
+        Header(3, "H3"),
+        Header(4, "H4"),
+        Header(5, "H5"),
+        Header(6, "H6"),
       ])
     );
   });
 
   test("Header is not too long", () => {
     expect(parse("==========H2==\n==H2==========", "")).toEqual(
-      new DocumentNode([
-        new HeaderNode(2, [new TextNode("========H2")]),
-        new HeaderNode(2, [new TextNode("H2========")]),
-      ])
+      new DocumentNode([Header(2, "========H2"), Header(2, "H2========")])
     );
   });
 
   test("Header is too long but still ok", () => {
     expect(parse("========== H6 ==========", "")).toEqual(
-      new DocumentNode([new HeaderNode(6, [new TextNode("==== H6 ====")])])
+      SingleHeader(6, "==== H6 ====")
     );
   });
 
   test("Header with a comment", () => {
     expect(parse("== Header<!--\n\n\n--> one==", "")).toEqual(
-      new DocumentNode([new HeaderNode(2, [new TextNode("Header one")])])
+      SingleHeader(2, "Header one")
     );
   });
 
   test.fails("Header with <pre>", () => {
     expect(parse("== Header <pre>\nhohoho\n</pre> ==", "")).toEqual(
-      new DocumentNode([
-        new HeaderNode(2, [
-          new TextNode("Header "),
-          new CodeBlockNode("\nhohoho\n"),
-        ]),
-      ])
+      SingleHeader(2, [Text("Header "), new CodeBlockNode("\nhohoho\n")])
     );
   });
 });
 
 describe("Bold/italic", () => {
-  function check(text: string, nodes: Array<AstNode>) {
-    expect(parse(text, "")).toEqual(
-      new DocumentNode([new ParagraphNode(nodes)])
-    );
+  function check(text: string, nodes: Array<AstNode> | AstNode | string) {
+    expect(parse(text, "")).toEqual(SingleParagraph(nodes));
   }
 
   test("Starts with 1 quote", () => {
-    check("'text", [new TextNode("'text")]);
-    check("'text'", [new TextNode("'text'")]);
-    check("'text''", [new TextNode("'text"), new ItalicNode()]);
-    check("'text'''", [new TextNode("'text"), new BoldNode()]);
-    check("'text''''", [new TextNode("'text'"), new BoldNode()]);
-    check("'text'''''", [
-      new TextNode("'text"),
-      new BoldNode([new ItalicNode()]),
-    ]);
-    check("'text''''''", [
-      new TextNode("'text'"),
-      new BoldNode([new ItalicNode()]),
-    ]);
-    check("'text'''''''", [
-      new TextNode("'text''"),
-      new BoldNode([new ItalicNode()]),
-    ]);
-    check("'text''''''''", [
-      new TextNode("'text'''"),
-      new BoldNode([new ItalicNode()]),
-    ]);
+    check("'text", [Text("'text")]);
+    check("'text'", [Text("'text'")]);
+    check("'text''", [Text("'text"), Italic()]);
+    check("'text'''", [Text("'text"), Bold()]);
+    check("'text''''", [Text("'text'"), Bold()]);
+    check("'text'''''", [Text("'text"), Bold(Italic())]);
+    check("'text''''''", [Text("'text'"), Bold(Italic())]);
+    check("'text'''''''", [Text("'text''"), Bold(Italic())]);
+    check("'text''''''''", [Text("'text'''"), Bold(Italic())]);
   });
 
   test("Starts with 2 quotes", () => {
-    check("''text", [new ItalicNode([new TextNode("text")])]);
-    check("''text'", [new ItalicNode([new TextNode("text'")])]);
-    check("''text''", [new ItalicNode([new TextNode("text")])]);
-    check("''text'''", [new ItalicNode([new TextNode("text'")])]);
-    check("''text''''", [new ItalicNode([new TextNode("text''")])]);
-    check("''text'''''", [
-      new ItalicNode([new TextNode("text")]),
-      new BoldNode(),
-    ]);
-    check("''text''''''", [
-      new ItalicNode([new TextNode("text'")]),
-      new BoldNode(),
-    ]);
-    check("''text'''''''", [
-      new ItalicNode([new TextNode("text''")]),
-      new BoldNode(),
-    ]);
-    check("''text''''''''", [
-      new ItalicNode([new TextNode("text'''")]),
-      new BoldNode(),
-    ]);
+    check("''text", [Italic("text")]);
+    check("''text'", [Italic("text'")]);
+    check("''text''", [Italic("text")]);
+    check("''text'''", [Italic("text'")]);
+    check("''text''''", [Italic("text''")]);
+    check("''text'''''", [Italic("text"), Bold()]);
+    check("''text''''''", [Italic("text'"), Bold()]);
+    check("''text'''''''", [Italic("text''"), Bold()]);
+    check("''text''''''''", [Italic("text'''"), Bold()]);
   });
 
   test("Starts with 3 quotes", () => {
-    check("'''text", [new BoldNode([new TextNode("text")])]);
-    check("'''text'", [new BoldNode([new TextNode("text'")])]);
-    check("'''text''", [
-      new TextNode("'"),
-      new ItalicNode([new TextNode("text")]),
-    ]);
-    check("'''text'''", [new BoldNode([new TextNode("text")])]);
-    check("'''text''''", [new BoldNode([new TextNode("text'")])]);
-    check("'''text'''''", [
-      new BoldNode([new TextNode("text")]),
-      new ItalicNode(),
-    ]);
-    check("'''text''''''", [
-      new BoldNode([new TextNode("text'")]),
-      new ItalicNode(),
-    ]);
-    check("'''text'''''''", [
-      new BoldNode([new TextNode("text''")]),
-      new ItalicNode(),
-    ]);
-    check("'''text''''''''", [
-      new BoldNode([new TextNode("text'''")]),
-      new ItalicNode(),
-    ]);
+    check("'''text", [Bold("text")]);
+    check("'''text'", [Bold("text'")]);
+    check("'''text''", [Text("'"), Italic("text")]);
+    check("'''text'''", [Bold("text")]);
+    check("'''text''''", [Bold("text'")]);
+    check("'''text'''''", [Bold("text"), Italic()]);
+    check("'''text''''''", [Bold("text'"), Italic()]);
+    check("'''text'''''''", [Bold("text''"), Italic()]);
+    check("'''text''''''''", [Bold("text'''"), Italic()]);
   });
 
   test("Starts with 4 quotes", () => {
-    check("''''text", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text")]),
-    ]);
-    check("''''text'", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text'")]),
-    ]);
-    check("''''text''", [
-      new TextNode("''"),
-      new ItalicNode([new TextNode("text")]),
-    ]);
-    check("''''text'''", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text")]),
-    ]);
-    check("''''text''''", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text'")]),
-    ]);
-    check("''''text'''''", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text")]),
-      new ItalicNode(),
-    ]);
-    check("''''text''''''", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text'")]),
-      new ItalicNode(),
-    ]);
-    check("''''text'''''''", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text''")]),
-      new ItalicNode(),
-    ]);
-    check("''''text''''''''", [
-      new TextNode("'"),
-      new BoldNode([new TextNode("text'''")]),
-      new ItalicNode(),
-    ]);
+    check("''''text", [Text("'"), Bold("text")]);
+    check("''''text'", [Text("'"), Bold("text'")]);
+    check("''''text''", [Text("''"), Italic("text")]);
+    check("''''text'''", [Text("'"), Bold("text")]);
+    check("''''text''''", [Text("'"), Bold("text'")]);
+    check("''''text'''''", [Text("'"), Bold("text"), Italic()]);
+    check("''''text''''''", [Text("'"), Bold("text'"), Italic()]);
+    check("''''text'''''''", [Text("'"), Bold("text''"), Italic()]);
+    check("''''text''''''''", [Text("'"), Bold("text'''"), Italic()]);
   });
 
   test("Starts with 5 quotes", () => {
-    check("'''''text", [
-      new BoldNode([new ItalicNode([new TextNode("text")])]),
-    ]);
-    check("'''''text'", [
-      new BoldNode([new ItalicNode([new TextNode("text'")])]),
-    ]);
-    check("'''''text''", [
-      new BoldNode([new ItalicNode([new TextNode("text")])]),
-    ]);
-    check("'''''text'''", [
-      new ItalicNode([new BoldNode([new TextNode("text")])]),
-    ]);
-    check("'''''text''''", [
-      new ItalicNode([new BoldNode([new TextNode("text'")])]),
-    ]);
-    check("'''''text'''''", [
-      new BoldNode([new ItalicNode([new TextNode("text")])]),
-    ]);
-    check("'''''text''''''", [
-      new BoldNode([new ItalicNode([new TextNode("text'")])]),
-    ]);
-    check("'''''text'''''''", [
-      new BoldNode([new ItalicNode([new TextNode("text''")])]),
-    ]);
-    check("'''''text''''''''", [
-      new BoldNode([new ItalicNode([new TextNode("text'''")])]),
-    ]);
+    check("'''''text", [Bold(Italic("text"))]);
+    check("'''''text'", [Bold(Italic("text'"))]);
+    check("'''''text''", [Bold(Italic("text"))]);
+    check("'''''text'''", [Italic(Bold("text"))]);
+    check("'''''text''''", [Italic(Bold("text'"))]);
+    check("'''''text'''''", [Bold(Italic("text"))]);
+    check("'''''text''''''", [Bold(Italic("text'"))]);
+    check("'''''text'''''''", [Bold(Italic("text''"))]);
+    check("'''''text''''''''", [Bold(Italic("text'''"))]);
   });
 
   test("Starts with 6 quotes", () => {
-    check("''''''text", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text")])]),
-    ]);
-    check("''''''text'", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text'")])]),
-    ]);
-    check("''''''text''", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text")])]),
-    ]);
-    check("''''''text'''", [
-      new TextNode("'"),
-      new ItalicNode([new BoldNode([new TextNode("text")])]),
-    ]);
-    check("''''''text''''", [
-      new TextNode("'"),
-      new ItalicNode([new BoldNode([new TextNode("text'")])]),
-    ]);
-    check("''''''text'''''", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text")])]),
-    ]);
-    check("''''''text''''''", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text'")])]),
-    ]);
-    check("''''''text'''''''", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text''")])]),
-    ]);
-    check("''''''text''''''''", [
-      new TextNode("'"),
-      new BoldNode([new ItalicNode([new TextNode("text'''")])]),
-    ]);
+    check("''''''text", [Text("'"), Bold(Italic("text"))]);
+    check("''''''text'", [Text("'"), Bold(Italic("text'"))]);
+    check("''''''text''", [Text("'"), Bold(Italic("text"))]);
+    check("''''''text'''", [Text("'"), Italic(Bold("text"))]);
+    check("''''''text''''", [Text("'"), Italic(Bold("text'"))]);
+    check("''''''text'''''", [Text("'"), Bold(Italic("text"))]);
+    check("''''''text''''''", [Text("'"), Bold(Italic("text'"))]);
+    check("''''''text'''''''", [Text("'"), Bold(Italic("text''"))]);
+    check("''''''text''''''''", [Text("'"), Bold(Italic("text'''"))]);
   });
 
   test("Starts with even more quotes", () => {
-    check("'''''''text'''''''", [
-      new TextNode("''"),
-      new BoldNode([new ItalicNode([new TextNode("text''")])]),
-    ]);
-    check("''''''''text''''''''", [
-      new TextNode("'''"),
-      new BoldNode([new ItalicNode([new TextNode("text'''")])]),
-    ]);
+    check("'''''''text'''''''", [Text("''"), Bold(Italic("text''"))]);
+    check("''''''''text''''''''", [Text("'''"), Bold(Italic("text'''"))]);
   });
 
   test("Bold+italic closes in separate places", () => {
     check("'''''one'' two''' three", [
-      new BoldNode([
-        new ItalicNode([new TextNode("one")]),
-        new TextNode(" two"),
-      ]),
-      new TextNode(" three"),
+      Bold([Italic("one"), Text(" two")]),
+      Text(" three"),
     ]);
     check("'''''one''' two'' three", [
-      new ItalicNode([
-        new BoldNode([new TextNode("one")]),
-        new TextNode(" two"),
-      ]),
-      new TextNode(" three"),
+      Italic([Bold("one"), Text(" two")]),
+      Text(" three"),
     ]);
   });
 
   test("Overlapping bold/italic ranges", () => {
     check("''one '''two'' three'''", [
-      new ItalicNode([
-        new TextNode("one "),
-        new BoldNode([new TextNode("two")]),
-      ]),
-      new BoldNode([new TextNode(" three")]),
+      Italic([Text("one "), Bold("two")]),
+      Bold(" three"),
     ]);
   });
 
   test("Unclosed bold and italic ranges", () => {
-    check("'''one ''two'''", [
-      new BoldNode([
-        new TextNode("one "),
-        new ItalicNode([new TextNode("two")]),
-      ]),
-      new ItalicNode(),
-    ]);
-    check("''one '''two''", [
-      new ItalicNode([
-        new TextNode("one "),
-        new BoldNode([new TextNode("two")]),
-      ]),
-      new BoldNode(),
-    ]);
+    check("'''one ''two'''", [Bold([Text("one "), Italic("two")]), Italic()]);
+    check("''one '''two''", [Italic([Text("one "), Bold("two")]), Bold()]);
   });
 
   test("Separate bold and italic closed with '''''", () => {
     check("''one '''two''''' three", [
-      new ItalicNode([
-        new TextNode("one "),
-        new BoldNode([new TextNode("two")]),
-      ]),
-      new TextNode(" three"),
+      Italic([Text("one "), Bold("two")]),
+      Text(" three"),
     ]);
     check("'''one ''two''''' three", [
-      new BoldNode([
-        new TextNode("one "),
-        new ItalicNode([new TextNode("two")]),
-      ]),
-      new TextNode(" three"),
+      Bold([Text("one "), Italic("two")]),
+      Text(" three"),
     ]);
   });
 });
 
 describe("Links", () => {
   test("Simple link", () => {
-    expect(parse("[[Hello]]", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new LinkNode("Hello")])])
-    );
+    expect(parse("[[Hello]]", "")).toEqual(SingleParagraph(Link("Hello")));
   });
 
   test("Simple link2", () => {
     expect(parse("[[Hello, world!]]", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new LinkNode("Hello, world!")])])
+      SingleParagraph(Link("Hello, world!"))
     );
   });
 
   test("Links starting with [[", () => {
     function check(text: string, nodes: Array<AstNode>): void {
-      expect(parse(text, "")).toEqual(
-        new DocumentNode([new ParagraphNode(nodes)])
-      );
+      expect(parse(text, "")).toEqual(SingleParagraph(nodes));
     }
-    check("[[link", [new TextNode("[[link")]);
-    check("[[link]", [new TextNode("[[link]")]);
-    check("[[link]]", [new LinkNode("link")]);
-    check("[[link]]]", [new LinkNode("link"), new TextNode("]")]);
-    check("[[link]]]]", [new LinkNode("link"), new TextNode("]]")]);
-    check("[[link]]]]]", [new LinkNode("link"), new TextNode("]]]")]);
+    check("[[link", [Text("[[link")]);
+    check("[[link]", [Text("[[link]")]);
+    check("[[link]]", [Link("link")]);
+    check("[[link]]]", [Link("link"), Text("]")]);
+    check("[[link]]]]", [Link("link"), Text("]]")]);
+    check("[[link]]]]]", [Link("link"), Text("]]]")]);
   });
 
   test("Links starting with [[[", () => {
     function check(text: string, nodes: Array<AstNode>): void {
-      expect(parse(text, "")).toEqual(
-        new DocumentNode([new ParagraphNode(nodes)])
-      );
+      expect(parse(text, "")).toEqual(SingleParagraph(nodes));
     }
-    check("[[[link", [new TextNode("[[[link")]);
-    check("[[[link]", [new TextNode("[[[link]")]);
-    check("[[[link]]", [new TextNode("[[[link]]")]);
-    check("[[[link]]]", [new TextNode("[[[link]]]")]);
-    check("[[[link]]]]", [new TextNode("[[[link]]]]")]);
+    check("[[[link", [Text("[[[link")]);
+    check("[[[link]", [Text("[[[link]")]);
+    check("[[[link]]", [Text("[[[link]]")]);
+    check("[[[link]]]", [Text("[[[link]]]")]);
+    check("[[[link]]]]", [Text("[[[link]]]]")]);
   });
 
   test("Links starting with [[[[", () => {
     function check(text: string, nodes: Array<AstNode>): void {
-      expect(parse(text, "")).toEqual(
-        new DocumentNode([new ParagraphNode(nodes)])
-      );
+      expect(parse(text, "")).toEqual(SingleParagraph(nodes));
     }
-    check("[[[[link", [new TextNode("[[[[link")]);
-    check("[[[[link]", [new TextNode("[[[[link]")]);
-    check("[[[[link]]", [new TextNode("[["), new LinkNode("link")]);
-    check("[[[[link]]]", [
-      new TextNode("[["),
-      new LinkNode("link"),
-      new TextNode("]"),
-    ]);
-    check("[[[[link]]]]", [
-      new TextNode("[["),
-      new LinkNode("link"),
-      new TextNode("]]"),
-    ]);
-    check("[[[[link]]]]]", [
-      new TextNode("[["),
-      new LinkNode("link"),
-      new TextNode("]]]"),
-    ]);
+    check("[[[[link", [Text("[[[[link")]);
+    check("[[[[link]", [Text("[[[[link]")]);
+    check("[[[[link]]", [Text("[["), Link("link")]);
+    check("[[[[link]]]", [Text("[["), Link("link"), Text("]")]);
+    check("[[[[link]]]]", [Text("[["), Link("link"), Text("]]")]);
+    check("[[[[link]]]]]", [Text("[["), Link("link"), Text("]]]")]);
   });
 
   test("Links starting with even more brackets", () => {
     function check(text: string, nodes: Array<AstNode>): void {
-      expect(parse(text, "")).toEqual(
-        new DocumentNode([new ParagraphNode(nodes)])
-      );
+      expect(parse(text, "")).toEqual(SingleParagraph(nodes));
     }
-    check("[[[[[link]]", [new TextNode("[[[[[link]]")]);
-    check("[[[[[link]]]", [new TextNode("[[[[[link]]]")]);
-    check("[[[[[link]]]]", [new TextNode("[[[[[link]]]]")]);
-    check("[[[[[[link]]", [new TextNode("[[[["), new LinkNode("link")]);
-    check("[[[[[[link]]]", [
-      new TextNode("[[[["),
-      new LinkNode("link"),
-      new TextNode("]"),
-    ]);
-    check("[[[[[[link]]]]", [
-      new TextNode("[[[["),
-      new LinkNode("link"),
-      new TextNode("]]"),
-    ]);
-    check("[[[[[[link]]]]]", [
-      new TextNode("[[[["),
-      new LinkNode("link"),
-      new TextNode("]]]"),
-    ]);
+    check("[[[[[link]]", [Text("[[[[[link]]")]);
+    check("[[[[[link]]]", [Text("[[[[[link]]]")]);
+    check("[[[[[link]]]]", [Text("[[[[[link]]]]")]);
+    check("[[[[[[link]]", [Text("[[[["), Link("link")]);
+    check("[[[[[[link]]]", [Text("[[[["), Link("link"), Text("]")]);
+    check("[[[[[[link]]]]", [Text("[[[["), Link("link"), Text("]]")]);
+    check("[[[[[[link]]]]]", [Text("[[[["), Link("link"), Text("]]]")]);
   });
 
   test("Link that looks like markup but isn't", () => {
-    expect(parse("[[''one'']]", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new LinkNode("''one''")])])
-    );
+    expect(parse("[[''one'']]", "")).toEqual(SingleParagraph(Link("''one''")));
   });
 
   test("Forbidden link characters", () => {
     function check(text: string, nodes: Array<AstNode>): void {
-      expect(parse(text, "")).toEqual(
-        new DocumentNode([new ParagraphNode(nodes)])
-      );
+      expect(parse(text, "")).toEqual(SingleParagraph(nodes));
     }
-    check("[[link<]]", [new TextNode("[[link<]]")]);
-    check("[[link>]]", [new TextNode("[[link>]]")]);
-    check("[[with [ bracket]]]", [new TextNode("[[with [ bracket]]]")]);
-    check("[[with ] bracket]]", [new TextNode("[[with ] bracket]]")]);
-    check("[[with { brace]]", [new TextNode("[[with { brace]]")]);
-    check("[[with } brace]]", [new TextNode("[[with } brace]]")]);
-    check("[[link\ntwo]]", [new TextNode("[[link two]]")]);
+    check("[[link<]]", [Text("[[link<]]")]);
+    check("[[link>]]", [Text("[[link>]]")]);
+    check("[[with [ bracket]]]", [Text("[[with [ bracket]]]")]);
+    check("[[with ] bracket]]", [Text("[[with ] bracket]]")]);
+    check("[[with { brace]]", [Text("[[with { brace]]")]);
+    check("[[with } brace]]", [Text("[[with } brace]]")]);
+    check("[[link\ntwo]]", [Text("[[link two]]")]);
   });
 
   test("Link with a comment", () => {
     expect(parse("[[this <!-- is | a --> link]]", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new LinkNode("this  link")])])
+      SingleParagraph(Link("this  link"))
     );
   });
 
   test("Renamed link", () => {
     expect(parse("[[one|two]]", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([new LinkNode("one", [new TextNode("two")])]),
-      ])
+      SingleParagraph(Link("one", [Text("two")]))
     );
   });
 
   test("Renamed link with formatting", () => {
     expect(parse("[[one|''two'']]", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([
-          new LinkNode("one", [new ItalicNode([new TextNode("two")])]),
-        ]),
-      ])
+      SingleParagraph(Link("one", [Italic("two")]))
     );
   });
 
   test("Renamed link with another link inside", () => {
     expect(parse("[[one|[[two]] three]]", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([
-          new TextNode("[[one|"),
-          new LinkNode("two"),
-          new TextNode(" three]]"),
-        ]),
-      ])
+      SingleParagraph([Text("[[one|"), Link("two"), Text(" three]]")])
     );
   });
 
   test("Renamed link with newlines", () => {
     expect(parse("[[one|two\n==three==\n# four\n]]", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([
-          new LinkNode("one", [new TextNode("two ==three== # four ")]),
-        ]),
-      ])
+      SingleParagraph(Link("one", [Text("two ==three== # four ")]))
     );
   });
 
   test("Renamed link with = character", () => {
     expect(parse("[[one|title=2]]", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([new LinkNode("one", [new TextNode("title=2")])]),
-      ])
+      SingleParagraph(Link("one", [Text("title=2")]))
     );
   });
 
   test("Renamed link with pipe character", () => {
     expect(parse("[[one|two|three]]", "")).toEqual(
-      new DocumentNode([
-        new ParagraphNode([new LinkNode("one", [new TextNode("two|three")])]),
-      ])
+      SingleParagraph(Link("one", [Text("two|three")]))
     );
   });
 
   test("Bleeding links", () => {
     function check(text: string, nodes: Array<AstNode>): void {
-      expect(parse(text, "")).toEqual(
-        new DocumentNode([new ParagraphNode(nodes)])
-      );
+      expect(parse(text, "")).toEqual(SingleParagraph(nodes));
     }
-    check("[[one]]ness", [new LinkNode("one").addBleedingEnd("ness")]);
+    check("[[one]]ness", [Link("one").addBleedingEnd("ness")]);
     check("[[bus]]es extra", [
-      new LinkNode("bus").addBleedingEnd("es"),
-      new TextNode(" extra"),
+      Link("bus").addBleedingEnd("es"),
+      Text(" extra"),
     ]);
-    check("[[special]]-ity", [new LinkNode("special"), new TextNode("-ity")]);
+    check("[[special]]-ity", [Link("special"), Text("-ity")]);
   });
 
   test("Pipe tricks", () => {
     function check(target: string, linkText: string): void {
       expect(parse(`[[${target}|]]`, "")).toEqual(
-        new DocumentNode([
-          new ParagraphNode([new LinkNode(target, [new TextNode(linkText)])]),
-        ])
+        SingleParagraph(Link(target, [Text(linkText)]))
       );
     }
     check("Pipe (computing)", "Pipe");
@@ -668,61 +429,29 @@ describe("Links", () => {
 
 describe("Ordered/unordered lists", () => {
   test("Single list item", () => {
-    expect(parse("*item", "")).toEqual(
-      new DocumentNode([
-        new UnorderedListNode(true, [new ListItemNode([new TextNode("item")])]),
-      ])
-    );
+    expect(parse("*item", "")).toEqual(SingleUL([LI("item")]));
   });
 
   test("Multiple list items", () => {
     expect(parse("* item 1\n* item 2\n* item 3\n", "")).toEqual(
-      new DocumentNode([
-        new UnorderedListNode(true, [
-          new ListItemNode([new TextNode("item 1")]),
-          new ListItemNode([new TextNode("item 2")]),
-          new ListItemNode([new TextNode("item 3")]),
-        ]),
-      ])
+      SingleUL([LI("item 1"), LI("item 2"), LI("item 3")])
     );
   });
 
   test("Empty list item", () => {
-    expect(parse("* \t", "")).toEqual(
-      new DocumentNode([new UnorderedListNode(true, [new ListItemNode()])])
-    );
-    expect(parse("#", "")).toEqual(
-      new DocumentNode([new OrderedListNode(true, [new ListItemNode()])])
-    );
+    expect(parse("* \t", "")).toEqual(SingleUL([LI()]));
+    expect(parse("#", "")).toEqual(SingleOL([LI()]));
   });
 
   test("Deep list item", () => {
     expect(parse("*** Deep", "")).toEqual(
-      new DocumentNode([
-        new UnorderedListNode(true, [
-          new ListItemNode([
-            new UnorderedListNode(true, [
-              new ListItemNode([
-                new UnorderedListNode(true, [
-                  new ListItemNode([new TextNode("Deep")]),
-                ]),
-              ]),
-            ]),
-          ]),
-        ]),
-      ])
+      SingleUL([LI([UL([LI([UL([LI("Deep")])])])])])
     );
   });
 
   test("Ordered list", () => {
     expect(parse("# one\n# two\n#three", "")).toEqual(
-      new DocumentNode([
-        new OrderedListNode(true, [
-          new ListItemNode([new TextNode("one")]),
-          new ListItemNode([new TextNode("two")]),
-          new ListItemNode([new TextNode("three")]),
-        ]),
-      ])
+      SingleOL([LI("one"), LI("two"), LI("three")])
     );
   });
 
@@ -739,33 +468,12 @@ describe("Ordered/unordered lists", () => {
         ""
       )
     ).toEqual(
-      new DocumentNode([
-        new UnorderedListNode(true, [
-          new ListItemNode([new TextNode("once")]),
-          new ListItemNode([
-            new TextNode("upon"),
-            new UnorderedListNode(true, [
-              new ListItemNode([new TextNode("a")]),
-              new ListItemNode([
-                new TextNode("time"),
-                new OrderedListNode(true, [
-                  new ListItemNode([new TextNode("there")]),
-                ]),
-              ]),
-            ]),
-            new OrderedListNode(true, [
-              new ListItemNode([
-                new TextNode("lived"),
-                new OrderedListNode(true, [
-                  new ListItemNode([
-                    new OrderedListNode(true, [
-                      new ListItemNode([new TextNode("a")]),
-                    ]),
-                  ]),
-                ]),
-              ]),
-            ]),
-          ]),
+      SingleUL([
+        LI("once"),
+        LI([
+          Text("upon"),
+          UL([LI("a"), LI([Text("time"), OL([LI("there")])])]),
+          OL([LI([Text("lived"), OL([LI([OL([LI("a")])])])])]),
         ]),
       ])
     );
@@ -774,9 +482,9 @@ describe("Ordered/unordered lists", () => {
   test("List interrupts a paragraph", () => {
     expect(parse("paragraph 1\n* list\nparagraph 2", "")).toEqual(
       new DocumentNode([
-        new ParagraphNode([new TextNode("paragraph 1")]),
-        new UnorderedListNode(true, [new ListItemNode([new TextNode("list")])]),
-        new ParagraphNode([new TextNode("paragraph 2")]),
+        Paragraph("paragraph 1"),
+        UL([LI("list")]),
+        Paragraph("paragraph 2"),
       ])
     );
   });
@@ -785,7 +493,91 @@ describe("Ordered/unordered lists", () => {
 describe("Templates", () => {
   test("Simple template", () => {
     expect(parse("{{Simple template}}", "")).toEqual(
-      new DocumentNode([new ParagraphNode([new TextNode("�")])])
+      SingleParagraph("�")
     );
   });
 });
+
+//--------------------------------------------------------------------------------------
+// Helper functions
+//--------------------------------------------------------------------------------------
+
+function SingleParagraph(
+  nodes: string | AstNode | Array<AstNode>
+): DocumentNode {
+  return new DocumentNode([Paragraph(nodes)]);
+}
+
+function SingleHeader(
+  level: number,
+  nodes: string | AstNode | Array<AstNode>
+): DocumentNode {
+  return new DocumentNode([Header(level, nodes)]);
+}
+
+function SingleUL(nodes: Array<AstNode>): DocumentNode {
+  return new DocumentNode([new UnorderedListNode(true, nodes)]);
+}
+
+function SingleOL(nodes: Array<AstNode>): DocumentNode {
+  return new DocumentNode([new OrderedListNode(true, nodes)]);
+}
+
+function UL(nodes: Array<ListItemNode>): UnorderedListNode {
+  return new UnorderedListNode(true, nodes);
+}
+
+function OL(nodes: Array<ListItemNode>): OrderedListNode {
+  return new OrderedListNode(true, nodes);
+}
+
+function Paragraph(nodes: string | AstNode | Array<AstNode>): ParagraphNode {
+  if (nodes instanceof AstNode) nodes = [nodes];
+  if (typeof nodes === "string") nodes = [new TextNode(nodes)];
+  return new ParagraphNode(nodes);
+}
+
+function Header(
+  level: number,
+  nodes: string | AstNode | Array<AstNode>
+): HeaderNode {
+  if (nodes instanceof AstNode) nodes = [nodes];
+  if (typeof nodes === "string") nodes = [new TextNode(nodes)];
+  return new HeaderNode(level, nodes);
+}
+
+function Text(text: string): TextNode {
+  return new TextNode(text);
+}
+
+function Bold(
+  nodes: null | string | AstNode | Array<AstNode> = null
+): BoldNode {
+  if (nodes === null) nodes = [];
+  if (nodes instanceof AstNode) nodes = [nodes];
+  if (!(nodes instanceof Array)) nodes = [new TextNode(nodes)];
+  return new BoldNode(nodes);
+}
+
+function Italic(
+  nodes: null | string | AstNode | Array<AstNode> = null
+): ItalicNode {
+  if (nodes === null) nodes = [];
+  if (nodes instanceof AstNode) nodes = [nodes];
+  if (!(nodes instanceof Array)) nodes = [new TextNode(nodes)];
+  return new ItalicNode(nodes);
+}
+
+function Link(target: string, nodes: Array<AstNode> | null = null): LinkNode {
+  if (nodes === null) nodes = [];
+  return new LinkNode(target, nodes);
+}
+
+function LI(
+  nodes: string | AstNode | Array<AstNode> | null = null
+): ListItemNode {
+  if (nodes === null) nodes = [];
+  if (nodes instanceof AstNode) nodes = [nodes];
+  if (typeof nodes === "string") nodes = [Text(nodes)];
+  return new ListItemNode(nodes);
+}
