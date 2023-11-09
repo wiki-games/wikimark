@@ -11,6 +11,8 @@ import {
   TextNode,
   UnorderedListNode,
   nodeTypes,
+  TemplateNode,
+  TemplateArgNode,
 } from "../nodes.js";
 import { isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
@@ -475,6 +477,7 @@ class Parser {
         break;
       }
       const ok =
+        this.parseTemplateToken(root, token0) ||
         this.parseBoldOrInlineDelimiters(root, token0) ||
         this.parseInternalLink(root, token0) ||
         this.parseExternalLink(root, token0) ||
@@ -826,6 +829,34 @@ class Parser {
     return false;
   }
 
+  private parseTemplateToken(parent: AstNode, token0: Token): boolean {
+    if (token0.type === tokens.templateNode) {
+      const token = token0 as TemplateToken;
+      const template = new TemplateNode(token.name);
+      for (const arg of token.args) {
+        const templateArg = new TemplateArgNode(arg[0]);
+        if (arg[1].length > 0) {
+          const parser = new Parser(arg[1], this.page_title);
+          let parsed = parser.parse().removeAllChildren();
+          if (parsed.length === 1 && parsed[0] instanceof ParagraphNode) {
+            parsed = parsed[0].removeAllChildren();
+          }
+          templateArg.addChildren(parsed);
+        }
+        template.addChild(templateArg);
+      }
+      const plainText = TEMPLATE_REPLACEMENTS.get(template.name);
+      if (plainText === undefined) {
+        parent.addChild(template);
+      } else {
+        parent.addChild(new TextNode(plainText));
+      }
+      this.position++;
+      return true;
+    }
+    return false;
+  }
+
   private parseInlineWhitespace(parent: AstNode, token0: Token): boolean {
     if (token0.type === tokens.whitespace) {
       let last = parent.lastChild;
@@ -888,3 +919,38 @@ class BINode extends AstNode {
   }
   public kind: string;
 }
+
+const TEMPLATE_REPLACEMENTS = new Map<string, string>([
+  [";", ";"],
+  ["!-", "|-"],
+  ["!!", "||"],
+  ["!", "|"],
+  ["!(", "["],
+  ["!((", "[["],
+  ["!)", "|}"],
+  ["'", "'"],
+  ["'s", "'s"],
+  ["(!", "{|"],
+  ["(", "{"],
+  ["((", "{{"],
+  ["(((", "{{{"],
+  [")!", "]"],
+  [")", "}"],
+  ["))!", "]]"],
+  ["))", "}}"],
+  [")))", "}}}"],
+  ["*", "\u00A0\u2022 "],
+  ["\\", "\u00A0/"],
+  ["`", "'"],
+  ["=", "="],
+  ["~", "~"],
+  ["~~", "~~"],
+  ["1~", "~"],
+  ["2~", "~~"],
+  ["3~", "~~~"],
+  ["4~", "~~~~"],
+  ["5~", "~~~~~"],
+  ["bull", "\u00A0\u2022 "],
+  ["bullet", "\u00A0\u2022 "],
+  ["pipe", "|"],
+]);

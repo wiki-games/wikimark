@@ -11,6 +11,7 @@ import {
   ListItemNode,
   OrderedListNode,
   ParagraphNode,
+  TemplateNode,
   TextNode,
   UnorderedListNode,
 } from "../../src/nodes.js";
@@ -493,7 +494,7 @@ describe("Ordered/unordered lists", () => {
 describe("Templates", () => {
   test("Simple template", () => {
     expect(parse("{{Simple template}}", "")).toEqual(
-      SingleParagraph("�")
+      SingleParagraph(Template("Simple template"))
     );
   });
 });
@@ -580,4 +581,8 @@ function LI(
   if (nodes instanceof AstNode) nodes = [nodes];
   if (typeof nodes === "string") nodes = [Text(nodes)];
   return new ListItemNode(nodes);
+}
+
+function Template(name: string): TemplateNode {
+  return new TemplateNode(name);
 }

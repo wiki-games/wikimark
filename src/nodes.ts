@@ -10,6 +10,8 @@ export { LinkNode } from "./nodes/LinkNode.js";
 export { ListItemNode } from "./nodes/ListItemNode.js";
 export { OrderedListNode } from "./nodes/OrderedListNode.js";
 export { ParagraphNode } from "./nodes/ParagraphNode.js";
+export { TemplateArgNode } from "./nodes/TemplateArgNode.js";
+export { TemplateNode } from "./nodes/TemplateNode.js";
 export { TextNode } from "./nodes/TextNode.js";
 export { UnorderedListNode } from "./nodes/UnorderedListNode.js";
 
