@@ -74,7 +74,7 @@ export abstract class AstNode {
   //------------------------------------------------------------------------------------
 
   /**
-   * Plain-text representation of the node, without any markup. If the node doesn't 
+   * Plain-text representation of the node, without any markup. If the node doesn't
    * have any text content (like an image), this should return an empty string.
    */
   toPlainText(): string {
@@ -205,11 +205,13 @@ export abstract class AstNode {
     return this._isOpen === true;
   }
 
-  setOpen(v: boolean) {
+  setOpen(v: boolean): this {
     if (v) {
       this._isOpen = true;
     } else {
       delete this._isOpen;
+      this.lastChild?.setOpen(false);
     }
+    return this;
   }
 }

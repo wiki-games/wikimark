@@ -651,6 +651,8 @@ const SPECIAL_CHARACTERS_SINGLE = new Map<number, string>([
   [codes.semicolon, tokens.semicolon],
   [codes.ampersand, tokens.ampersand],
   [codes.exclamationMark, tokens.exclamation],
+  [codes.asterisk, tokens.asterisk],
+  [codes.numberSign, tokens.hashSign],
 ]);
 
 const SPECIAL_CHARACTER_RUNS = new Map<number, string>([
@@ -662,6 +664,4 @@ const SPECIAL_CHARACTER_RUNS = new Map<number, string>([
   [codes.bracketRight, tokens.rightBracketRun],
   [codes.colon, tokens.colon],
   [codes.hyphen, tokens.dash],
-  [codes.asterisk, tokens.asterisk],
-  [codes.numberSign, tokens.hashSign],
 ]);

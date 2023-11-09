@@ -3,12 +3,15 @@ import {
   BoldNode,
   DocumentNode,
   HeaderNode,
+  LinkNode,
+  ListItemNode,
   ItalicNode,
+  OrderedListNode,
   ParagraphNode,
   TextNode,
+  UnorderedListNode,
   nodeTypes,
 } from "../nodes.js";
-import { LinkNode } from "../nodes/LinkNode.js";
 import { isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
@@ -35,6 +38,7 @@ class Parser {
 
   parse(): DocumentNode {
     const root = new DocumentNode();
+    root.setOpen(true);
     this.processTemplates();
     this.position = 0;
     while (this.position < this.tokens.length) {
@@ -46,7 +50,7 @@ class Parser {
         );
       }
     }
-    root.lastChild?.setOpen(false);
+    root.setOpen(false);
     return root;
   }
 
@@ -289,6 +293,7 @@ class Parser {
     return (
       this.parseEmptyLine(parent) ||
       this.parseHeader(parent) ||
+      this.parseOrderedAndUnorderedList(parent) ||
       this.parseParagraph(parent)
     );
   }
@@ -385,6 +390,63 @@ class Parser {
         }
         return true;
       }
+    }
+    return false;
+  }
+
+  private parseOrderedAndUnorderedList(parent: AstNode): boolean {
+    const token0 = this.tokenAt(0);
+    if (token0?.type === tokens.asterisk || token0?.type === tokens.hashSign) {
+      let currentParent: AstNode = parent;
+      let startNewListItem = false;
+      while (true) {
+        const token1 = this.tokenAt(0);
+        if (token1 === null) break;
+        if (token1.type === tokens.asterisk) {
+          const prev = currentParent.lastChild;
+          if (prev?.isOpen && prev instanceof UnorderedListNode) {
+            currentParent = prev.lastChild!;
+            startNewListItem = true;
+          } else {
+            if (prev?.isOpen) prev.setOpen(false);
+            const newList = new UnorderedListNode(true).setOpen(true);
+            const newItem = new ListItemNode();
+            currentParent.addChild(newList);
+            newList.addChild(newItem);
+            currentParent = newItem;
+            startNewListItem = false;
+          }
+          this.position++;
+        } else if (token1.type === tokens.hashSign) {
+          const prev = currentParent.lastChild;
+          if (prev?.isOpen && prev instanceof OrderedListNode) {
+            currentParent = prev.lastChild!;
+            startNewListItem = true;
+          } else {
+            if (prev?.isOpen) prev.setOpen(false);
+            const newList = new OrderedListNode(true).setOpen(true);
+            const newItem = new ListItemNode();
+            currentParent.addChild(newList);
+            newList.addChild(newItem);
+            currentParent = newItem;
+            startNewListItem = false;
+          }
+          this.position++;
+        } else {
+          break;
+        }
+      }
+      // skip whitespace
+      while (this.tokenAt(0)?.type === tokens.whitespace) {
+        this.position++;
+      }
+      if (startNewListItem) {
+        const listItem = new ListItemNode();
+        currentParent.parent!.addChild(listItem);
+        currentParent = listItem;
+      }
+      this.parseInline(currentParent);
+      return true;
     }
     return false;
   }

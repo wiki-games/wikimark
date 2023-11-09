@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/nodes.ts",
   "scripts": {
+    "coverage": "vitest --coverage",
     "test": "vitest"
   },
   "keywords": [],

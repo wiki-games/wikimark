@@ -8,8 +8,11 @@ import {
   HeaderNode,
   ItalicNode,
   LinkNode,
+  ListItemNode,
+  OrderedListNode,
   ParagraphNode,
   TextNode,
+  UnorderedListNode,
 } from "../../src/nodes.js";
 
 test("Empty document", () => {
@@ -660,6 +663,122 @@ describe("Links", () => {
     check(":es:Wikipedia:Políticas", "Wikipedia:Políticas");
     check("Il Buono, il Brutto, il Cattivo", "Il Buono");
     check("Wikipedia:Manual of Style (Persian)", "Manual of Style");
+  });
+});
+
+describe("Ordered/unordered lists", () => {
+  test("Single list item", () => {
+    expect(parse("*item", "")).toEqual(
+      new DocumentNode([
+        new UnorderedListNode(true, [new ListItemNode([new TextNode("item")])]),
+      ])
+    );
+  });
+
+  test("Multiple list items", () => {
+    expect(parse("* item 1\n* item 2\n* item 3\n", "")).toEqual(
+      new DocumentNode([
+        new UnorderedListNode(true, [
+          new ListItemNode([new TextNode("item 1")]),
+          new ListItemNode([new TextNode("item 2")]),
+          new ListItemNode([new TextNode("item 3")]),
+        ]),
+      ])
+    );
+  });
+
+  test("Empty list item", () => {
+    expect(parse("* \t", "")).toEqual(
+      new DocumentNode([new UnorderedListNode(true, [new ListItemNode()])])
+    );
+    expect(parse("#", "")).toEqual(
+      new DocumentNode([new OrderedListNode(true, [new ListItemNode()])])
+    );
+  });
+
+  test("Deep list item", () => {
+    expect(parse("*** Deep", "")).toEqual(
+      new DocumentNode([
+        new UnorderedListNode(true, [
+          new ListItemNode([
+            new UnorderedListNode(true, [
+              new ListItemNode([
+                new UnorderedListNode(true, [
+                  new ListItemNode([new TextNode("Deep")]),
+                ]),
+              ]),
+            ]),
+          ]),
+        ]),
+      ])
+    );
+  });
+
+  test("Ordered list", () => {
+    expect(parse("# one\n# two\n#three", "")).toEqual(
+      new DocumentNode([
+        new OrderedListNode(true, [
+          new ListItemNode([new TextNode("one")]),
+          new ListItemNode([new TextNode("two")]),
+          new ListItemNode([new TextNode("three")]),
+        ]),
+      ])
+    );
+  });
+
+  test("Complicated mixed list", () => {
+    expect(
+      parse(
+        "* once\n" +
+          "* upon\n" +
+          "** a\n" +
+          "** time\n" +
+          "**# there\n" +
+          "*# lived\n" +
+          "*### a\n",
+        ""
+      )
+    ).toEqual(
+      new DocumentNode([
+        new UnorderedListNode(true, [
+          new ListItemNode([new TextNode("once")]),
+          new ListItemNode([
+            new TextNode("upon"),
+            new UnorderedListNode(true, [
+              new ListItemNode([new TextNode("a")]),
+              new ListItemNode([
+                new TextNode("time"),
+                new OrderedListNode(true, [
+                  new ListItemNode([new TextNode("there")]),
+                ]),
+              ]),
+            ]),
+            new OrderedListNode(true, [
+              new ListItemNode([
+                new TextNode("lived"),
+                new OrderedListNode(true, [
+                  new ListItemNode([
+                    new OrderedListNode(true, [
+                      new ListItemNode([new TextNode("a")]),
+                    ]),
+                  ]),
+                ]),
+              ]),
+            ]),
+          ]),
+        ]),
+      ])
+    );
+  });
+
+  test("List interrupts a paragraph", () => {
+    expect(parse("paragraph 1\n* list\nparagraph 2", "")).toEqual(
+      new DocumentNode([
+        new ParagraphNode([new TextNode("paragraph 1")]),
+        new UnorderedListNode(true, [new ListItemNode([new TextNode("list")])]),
+        new ParagraphNode([new TextNode("paragraph 2")]),
+      ])
+    );
   });
 });
 
