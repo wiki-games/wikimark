@@ -45,12 +45,10 @@ class Parser {
     this.position = 0;
     while (this.position < this.tokens.length) {
       const ok = this.parseBlockLine(root);
-      if (!ok) {
-        const token = this.tokenAt(0);
-        throw Error(
-          `Unable to parse the document at token ${reprToken(token)}`
-        );
-      }
+      assert(
+        ok,
+        `Unable to parse the document at token ${reprToken(this.tokenAt(0))}`
+      );
     }
     root.setOpen(false);
     return root;
@@ -106,10 +104,9 @@ class Parser {
           const argName = this.parseTemplateArgName();
           const argValue = this.parseTemplateArgValue();
           args.push([argName, argValue]);
-        } else if (token1.type === tokens.rightBraceRun) {
-          if (token1.text.length !== 2) {
-            return null;
-          }
+        } else {
+          assert(token1.type === tokens.rightBraceRun && token1.text.length === 2);
+          this.position++;
           return {
             type: tokens.templateNode,
             text: "\ufffd",
@@ -118,10 +115,6 @@ class Parser {
             name: name,
             args: args,
           };
-        } else {
-          throw Error(
-            `Unexpected token in parseTemplate(): ${reprToken(token1)}`
-          );
         }
       }
     }
@@ -246,6 +239,7 @@ class Parser {
 
   private parseTemplateArgValue(): Array<Token> {
     const out: Array<Token> = [];
+    this.skipTemplateWhitespace();
     while (true) {
       const token0 = this.tokenAt(0);
       if (token0 === null) break;

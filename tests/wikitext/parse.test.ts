@@ -11,6 +11,7 @@ import {
   ListItemNode,
   OrderedListNode,
   ParagraphNode,
+  TemplateArgNode,
   TemplateNode,
   TextNode,
   UnorderedListNode,
@@ -497,6 +498,68 @@ describe("Templates", () => {
       SingleParagraph(Template("Simple template"))
     );
   });
+
+  test("Template with an argument", () => {
+    expect(parse("{{one|two}}", "")).toEqual(
+      SingleParagraph(Template("one", [Arg(null, Text("two"))]))
+    );
+  });
+
+  test("Template with a named argument", () => {
+    expect(parse("{{one|two=three}}", "")).toEqual(
+      SingleParagraph(Template("one", [Arg("two", Text("three"))]))
+    );
+  });
+
+  test("Multi-line template", () => {
+    expect(
+      parse("{{Template|\n  arg1 = value1\n | arg2\n =  value2\n}}", "")
+    ).toEqual(
+      SingleParagraph(
+        Template("Template", [
+          Arg("arg1", Text("value1")),
+          Arg("arg2", Text("value2")),
+        ])
+      )
+    );
+  });
+
+  test("Unclosed template", () => {
+    expect(parse("{{templ", "")).toEqual(SingleParagraph("{{templ"));
+    expect(parse("{{templ|", "")).toEqual(SingleParagraph("{{templ|"));
+    expect(parse("{{templ}", "")).toEqual(SingleParagraph("{{templ}"));
+    expect(parse("{{templ|}", "")).toEqual(SingleParagraph("{{templ|}"));
+    expect(parse("{{templ|arg}", "")).toEqual(SingleParagraph("{{templ|arg}"));
+  });
+
+  test("Template with newline in the name", () => {
+    expect(parse("{{abc\ndef}}", "")).toEqual(SingleParagraph("{{abc def}}"));
+    expect(parse("{{abc\n}}", "")).toEqual(SingleParagraph(Template("abc")));
+  });
+
+  test("Template with comment in the name or arg", () => {
+    expect(parse("{{abc<!--\n-->def}}", "")).toEqual(
+      SingleParagraph(Template("abcdef"))
+    );
+    expect(parse("{{abc|d<!--\n-->ef=}}", "")).toEqual(
+      SingleParagraph(Template("abc", [Arg("def", [])]))
+    );
+  });
+
+  test("Invalid characters in template name", () => {
+    expect(parse("{{abc[def}}", "")).toEqual(SingleParagraph("{{abc[def}}"));
+    expect(parse("{{abc]def}}", "")).toEqual(SingleParagraph("{{abc]def}}"));
+    expect(parse("{{abc<def}}", "")).toEqual(SingleParagraph("{{abc<def}}"));
+    expect(parse("{{abc>def}}", "")).toEqual(SingleParagraph("{{abc>def}}"));
+    expect(parse("{{abc{def}}", "")).toEqual(SingleParagraph("{{abc{def}}"));
+    expect(parse("{{abc}def}}", "")).toEqual(SingleParagraph("{{abc}def}}"));
+  });
+
+  test("Template inside template", () => {
+    expect(parse("{{abc|{{def}} }}", "")).toEqual(
+      SingleParagraph(Template("abc", [Arg(null, [Template("def"), Text(" ")])]))
+    )
+  })
 });
 
 //--------------------------------------------------------------------------------------
@@ -583,6 +646,14 @@ function LI(
   return new ListItemNode(nodes);
 }
 
-function Template(name: string): TemplateNode {
-  return new TemplateNode(name);
+function Template(name: string, args?: Array<TemplateArgNode>): TemplateNode {
+  return new TemplateNode(name, args);
+}
+
+function Arg(
+  name: string | null,
+  nodes: Array<AstNode> | AstNode
+): TemplateArgNode {
+  if (nodes instanceof AstNode) nodes = [nodes];
+  return new TemplateArgNode(name, nodes);
 }
