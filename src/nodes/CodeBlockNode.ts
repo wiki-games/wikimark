@@ -1,4 +1,5 @@
 import { nodeTypes } from "../nodes.js";
+import { codes } from "../utils/codes.js";
 import { WikimarkWriter } from "../wikimark/WikimarkWriter.js";
 import { AstNode } from "./AstNode.js";
 
@@ -12,6 +13,8 @@ export class CodeBlockNode extends AstNode {
   public text: string;
 
   override _writeWikimark(out: WikimarkWriter): void {
-    throw Error("Not implemented");
+    out.writeAll([codes.backtick, codes.backtick, codes.backtick]);
+    out.writeText(this.text);
+    out.writeAll([codes.backtick, codes.backtick, codes.backtick]);
   }
 }

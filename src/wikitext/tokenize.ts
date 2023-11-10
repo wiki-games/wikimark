@@ -192,7 +192,6 @@ class Lexer {
       const loc0 = this.location;
       this.position += 4;
       const loc1 = this.location;
-      const pos1 = this.position;
       this.tokens.push({
         type: tokens.commentStart,
         text: "<!--",

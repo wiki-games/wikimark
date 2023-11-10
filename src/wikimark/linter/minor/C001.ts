@@ -13,6 +13,7 @@ export class C001 extends LintRule {
   constructor() { super("C001"); }
   
   override run(ctx: LintContext): void {
+    ctx;
     throw new Error("Method not implemented.");
   }
 }

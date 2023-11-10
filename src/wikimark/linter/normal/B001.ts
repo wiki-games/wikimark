@@ -1,4 +1,4 @@
-import { AstNode, BoldNode, ItalicNode, nodeTypes } from "../../../nodes.js";
+import { AstNode, BoldNode, ItalicNode } from "../../../nodes.js";
 import { LintContext } from "../LintContext.js";
 import { LintRule } from "../LintRule.js";
 

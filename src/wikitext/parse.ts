@@ -105,7 +105,9 @@ class Parser {
           const argValue = this.parseTemplateArgValue();
           args.push([argName, argValue]);
         } else {
-          assert(token1.type === tokens.rightBraceRun && token1.text.length === 2);
+          assert(
+            token1.type === tokens.rightBraceRun && token1.text.length === 2
+          );
           this.position++;
           return {
             type: tokens.templateNode,
@@ -703,6 +705,8 @@ class Parser {
           return null;
         case tokens.rightBracketRun:
           if (token0.text.length === 1) return null;
+          this.position--;
+          return text;
         case tokens.pipe:
           this.position--;
           return text;
@@ -768,6 +772,7 @@ class Parser {
   }
 
   private parseImageLink(target: string): AstNode | null {
+    unused(target);
     return null;
   }
 
@@ -805,12 +810,14 @@ class Parser {
   }
 
   private parseExternalLink(parent: AstNode, token0: Token): boolean {
+    unused(parent);
     if (token0.type === tokens.leftBracketRun && token0.text.length % 2 === 1) {
     }
     return false;
   }
 
   private parseHtmlComment(parent: AstNode, token0: Token): boolean {
+    unused(parent);
     if (token0.type === tokens.commentStart) {
       while (true) {
         const token1 = this.tokenAt(0);
@@ -948,3 +955,7 @@ const TEMPLATE_REPLACEMENTS = new Map<string, string>([
   ["bullet", "\u00A0\u2022 "],
   ["pipe", "|"],
 ]);
+
+function unused(x: any) {
+  x;
+}
