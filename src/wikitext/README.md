@@ -79,10 +79,10 @@ based on observation (trying various markups in Wikipedia's sandbox).
     - `'text''` -> `'text<i></i>`,
     - `'text'''` -> `'text<b></b>`,
     - `'text''''` -> `'text'<b></b>`,
-    - `'text'''''` -> `'text ` (can be considered as `<b><i></i></b>`),
-    - `'text''''''` -> `'text' `,
-    - `'text'''''''` -> `'text'' `,
-    - `'text''''''''` -> `'text''' ` etc...,
+    - `'text'''''` -> `'text` (can be considered as `<b><i></i></b>`),
+    - `'text''''''` -> `'text'`,
+    - `'text'''''''` -> `'text''`,
+    - `'text''''''''` -> `'text'''` etc...,
     - `''text` -> `<i>text</i>`,
     - `''text'` -> `<i>text'</i>`,
     - `''text''` -> `<i>text</i>`,
@@ -222,7 +222,7 @@ based on observation (trying various markups in Wikipedia's sandbox).
     though it doesn't work consistently:
     - `[[Wikipedia|\n==header==\n# one\n# two]]` =>
       `<a href="Wikipedia"><h2>header</h2><p># one # two</p></a>`
-    - It is probably best not to engage in this kind of frivolities, and simply 
+    - It is probably best not to engage in this kind of frivolities, and simply
       suppress all newlines inside a link.
   - There are no named arguments to a link, so `=` sign is treated verbatim:
     - `[[one|title=2]]` -> `<a href="one">title=2</a>`
@@ -251,3 +251,10 @@ based on observation (trying various markups in Wikipedia's sandbox).
     parsing rules comes into effect:
     - multiple `|`-separated sections are allowed;
     - named arguments are allowed.
+
+- Images:
+  - Images are similar to regular links, but start with `[[File:` or `[[Image:`.
+  - Images support having multiple parameters, both named and unnamed.
+    - See [https://en.wikipedia.org/wiki/Wikipedia:Extended_image_syntax] for details.
+  - Unrecognized parameters seem to simply get ignored, so that's what we are going
+    to do also.

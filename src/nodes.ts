@@ -4,6 +4,7 @@ export { CodeBlockNode } from "./nodes/CodeBlockNode.js";
 export { CommentNode } from "./nodes/CommentNode.js";
 export { DocumentNode } from "./nodes/DocumentNode.js";
 export { HeaderNode } from "./nodes/HeaderNode.js";
+export { ImageNode } from "./nodes/ImageNode.js";
 export { ItalicNode } from "./nodes/ItalicNode.js";
 export { LinkDefinitionNode } from "./nodes/LinkDefinitionNode.js";
 export { LinkNode } from "./nodes/LinkNode.js";

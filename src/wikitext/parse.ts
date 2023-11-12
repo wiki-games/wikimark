@@ -13,8 +13,9 @@ import {
   nodeTypes,
   TemplateNode,
   TemplateArgNode,
+  ImageNode,
 } from "../nodes.js";
-import { isAlphaNum } from "../utils/codes.js";
+import { Code, isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
@@ -101,7 +102,7 @@ class Parser {
         if (token1 === null) return null;
         if (token1.type === tokens.pipe) {
           this.position++;
-          const argName = this.parseTemplateArgName();
+          const argName = this.parseTemplateOrImageArgName();
           const argValue = this.parseTemplateArgValue();
           args.push([argName, argValue]);
         } else {
@@ -186,7 +187,7 @@ class Parser {
    * If the name is invalid, or if there is no "=" sign, then returns `null` without
    * advancing the parsing position.
    */
-  private parseTemplateArgName(): string | null {
+  private parseTemplateOrImageArgName(): string | null {
     const pos0 = this.position;
     this.skipTemplateWhitespace();
     let text = "";
@@ -200,15 +201,15 @@ class Parser {
           text += " ";
           break;
         case tokens.newline:
-        case tokens.rightBraceRun:
-        case tokens.pipe:
-        case tokens.equal:
-        case tokens.equalSignsRun:
-        case tokens.leftBraceRun:
-        case tokens.leftBracketRun:
-        case tokens.rightBracketRun:
-        case tokens.leftAngleBracket:
-        case tokens.rightAngleBracket:
+        case tokens.rightBraceRun: // }}...
+        case tokens.pipe: // |
+        case tokens.equal: // =
+        case tokens.equalSignsRun: // ==...
+        case tokens.leftBraceRun: // {{...
+        case tokens.leftBracketRun: // [[...
+        case tokens.rightBracketRun: // ]]...
+        case tokens.leftAngleBracket: // <
+        case tokens.rightAngleBracket: // >
         case tokens.htmlTagStart:
         case tokens.htmlEntity:
           done = true;
@@ -246,8 +247,9 @@ class Parser {
       const token0 = this.tokenAt(0);
       if (token0 === null) break;
       if (token0.type === tokens.pipe) break;
-      if (token0.type === tokens.rightBraceRun && token0.text.length === 2)
+      if (token0.type === tokens.rightBraceRun && token0.text.length === 2) {
         break;
+      }
       if (token0.type === tokens.leftBraceRun && token0.text.length === 2) {
         const pos0 = this.position;
         const template = this.parseTemplate();
@@ -655,8 +657,10 @@ class Parser {
       const target = this.parseInternalLinkTarget();
       let result: AstNode | null = null;
       if (target === null) {
-      } else if (target.startsWith("File:") || target.startsWith("Image:")) {
-        result = this.parseImageLink(target);
+      } else if (target.startsWith("File:")) {
+        result = this.parseImageLink(target.substring(5));
+      } else if (target.startsWith("Image:")) {
+        result = this.parseImageLink(target.substring(6));
       } else {
         result = this.parsePageLink(target);
       }
@@ -772,8 +776,121 @@ class Parser {
   }
 
   private parseImageLink(target: string): AstNode | null {
-    unused(target);
-    return null;
+    const image = new ImageNode(target);
+    const args: Array<[string | null, Array<Token>]> = [];
+    while (true) {
+      const token0 = this.tokenAt(0);
+      if (token0 === null) return null;
+      if (token0.type === tokens.rightBracketRun) {
+        if (token0.text.length < 2) return null;
+        break;
+      }
+      if (token0.type === tokens.pipe) {
+        this.position++; // skip over token0
+        const argName = this.parseTemplateOrImageArgName();
+        const argTokens = this.parseImageArgValue();
+        args.push([argName, argTokens]);
+      }
+    }
+    // Add caption as image's children
+    if (args.length > 0) {
+      let argName = args[args.length - 1][0];
+      let argNodes = this.parseTokens(args[args.length - 1][1]);
+      if (argName === null) {
+        image.addChildren(argNodes);
+        args.pop();
+      }
+    }
+    // Post-process image arguments
+    for (let i = 0; i < args.length; i++) {
+      let argName = args[i][0];
+      let argNodes = this.parseTokens(args[i][1]);
+      let argValue = "";
+      for (const node of argNodes) {
+        argValue += node.toPlainText();
+      }
+      if (argName === null) {
+        argName = argValue;
+        argValue = "";
+      }
+      if (argName === null || argName === "") {
+        // ignore?
+      } else if (argName === "thumb" || argName === "thumbnail") {
+        image.properties.set("Type", "thumb");
+      } else if (argName === "frame") {
+        image.properties.set("Type", "frame");
+      } else if (argName === "frameless") {
+        image.properties.set("Type", "frameless");
+      } else if (argName === "border") {
+        image.properties.set("Border", "border");
+      } else if (
+        argName === "left" ||
+        argName === "right" ||
+        argName === "center" ||
+        argName === "none"
+      ) {
+        image.properties.set("HAlign", argName);
+      } else if (
+        argName === "middle" ||
+        argName === "baseline" ||
+        argName === "sub" ||
+        argName === "super" ||
+        argName === "text-top" ||
+        argName === "text-botom" ||
+        argName === "top" ||
+        argName === "bottom"
+      ) {
+        image.properties.set("VAlign", argName);
+      } else if (argName === "link") {
+        image.properties.set("Link", argValue);
+      } else if (argName === "upright") {
+        image.properties.set("Size", `upright=${argValue}`);
+      } else if (/^(\d+)px/.test(argName)) {
+        const w = argName.slice(0, argName.length - 2);
+        image.properties.set("Size", "width=" + w);
+      } else if (/^x(\d+)px/.test(argName)) {
+        const h = argName.slice(1, argName.length - 2);
+        image.properties.set("Size", "height=" + h);
+      } else if (/^x(\d+)x(\d+)px/.test(argName)) {
+        const wh = argName.slice(1, argName.length - 2);
+        image.properties.set("Size", "fit=" + wh);
+      } else if (argName === "alt") {
+        image.properties.set("Alt", argValue);
+      } else if (argName === "class") {
+        image.properties.set("Class", argValue);
+      } else if (argName === "page")  {
+        image.properties.set("Page", argValue);
+      } else {
+        // unknown image property, ignore
+      }
+    }
+    return image;
+  }
+
+  private parseImageArgValue(): Array<Token> {
+    const out: Array<Token> = [];
+    this.skipTemplateWhitespace();
+    while (true) {
+      const token0 = this.tokenAt(0);
+      if (token0 === null) break;
+      if (token0.type === tokens.pipe) break;
+      if (token0.type === tokens.rightBracketRun && token0.text.length === 2) {
+        break;
+      }
+      out.push(token0);
+      this.position++;
+    }
+    const WHITESPACE: Set<string> = new Set([
+      tokens.whitespace,
+      tokens.newline,
+    ]);
+    while (out.length > 0 && WHITESPACE.has(out[out.length - 1].type)) {
+      out.pop();
+    }
+    while (out.length > 0 && WHITESPACE.has(out[0].type)) {
+      out.shift();
+    }
+    return out;
   }
 
   private parseBleedingEnd(linkNode: LinkNode): void {
@@ -837,12 +954,8 @@ class Parser {
       for (const arg of token.args) {
         const templateArg = new TemplateArgNode(arg[0]);
         if (arg[1].length > 0) {
-          const parser = new Parser(arg[1], this.page_title);
-          let parsed = parser.parse().removeAllChildren();
-          if (parsed.length === 1 && parsed[0] instanceof ParagraphNode) {
-            parsed = parsed[0].removeAllChildren();
-          }
-          templateArg.addChildren(parsed);
+          const nodes = this.parseTokens(arg[1]);
+          templateArg.addChildren(nodes);
         }
         template.addChild(templateArg);
       }
@@ -884,7 +997,7 @@ class Parser {
   // Helpers
   //------------------------------------------------------------------------------------
 
-  protected tokenAt(delta: number): Token | null {
+  private tokenAt(delta: number): Token | null {
     const i = this.position + delta;
     assert(i >= 0);
     return i < this.tokens.length ? this.tokens[i] : null;
@@ -898,6 +1011,16 @@ class Parser {
       }
     }
     return n;
+  }
+
+  private parseTokens(tokens: Array<Token>): Array<AstNode> {
+    const parser = new Parser(tokens, this.page_title);
+    const parsed = parser.parse();
+    let nodes = parsed.removeAllChildren();
+    if (nodes.length === 1 && nodes[0] instanceof ParagraphNode) {
+      nodes = nodes[0].removeAllChildren();
+    }
+    return nodes;
   }
 }
 
