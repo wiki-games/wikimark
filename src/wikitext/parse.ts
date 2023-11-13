@@ -20,7 +20,7 @@ import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
 
-export function parse(text: string, page_title: string): DocumentNode {
+export function parse(text: string, page_title: string = ""): DocumentNode {
   const tokens = tokenize(text);
   const parser = new Parser(tokens, page_title);
   return parser.parse();
@@ -813,6 +813,8 @@ class Parser {
         argName = argValue;
         argValue = "";
       }
+      if (argName === "centre") argName = "center";
+
       if (argName === null || argName === "") {
         // ignore?
       } else if (argName === "thumb" || argName === "thumbnail") {
@@ -845,15 +847,15 @@ class Parser {
         image.properties.set("Link", argValue);
       } else if (argName === "upright") {
         image.properties.set("Size", `upright=${argValue}`);
-      } else if (/^(\d+)px/.test(argName)) {
-        const w = argName.slice(0, argName.length - 2);
-        image.properties.set("Size", "width=" + w);
-      } else if (/^x(\d+)px/.test(argName)) {
-        const h = argName.slice(1, argName.length - 2);
-        image.properties.set("Size", "height=" + h);
-      } else if (/^x(\d+)x(\d+)px/.test(argName)) {
-        const wh = argName.slice(1, argName.length - 2);
-        image.properties.set("Size", "fit=" + wh);
+      } else if (/^\d+\s*px/.test(argName)) {
+        const match = argName.match(/^(\d+)\s*px/)!;
+        image.properties.set("Size", "width=" + match[1]);
+      } else if (/^x\s*\d+\s*px/.test(argName)) {
+        const match = argName.match(/^x\s*(\d+)\s*px/)!;
+        image.properties.set("Size", "height=" + match[1]);
+      } else if (/^x\s*\d+\s*x\s*\d+\s*px/.test(argName)) {
+        const match = argName.match(/^x\s*(\d+)\s*x\s*(\d+)\s*px/)!;
+        image.properties.set("Size", "fit=" + match[1] + 'x' + match[2]);
       } else if (argName === "alt") {
         image.properties.set("Alt", argValue);
       } else if (argName === "class") {

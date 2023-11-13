@@ -1,7 +1,11 @@
 import { AstNode, nodeTypes } from "../nodes.js";
 
 export class ImageNode extends AstNode {
-  constructor(target: string, props?: Props, children?: Array<AstNode>) {
+  constructor(
+    target: string,
+    props?: { [key: string]: string },
+    children?: Array<AstNode>
+  ) {
     super(nodeTypes.image, children);
     this.target = target;
     this.properties = props ? new Map(Object.entries(props)) : new Map();
@@ -10,7 +14,3 @@ export class ImageNode extends AstNode {
   public target: string;
   public properties: Map<string, string>;
 }
-
-type Props = {
-  [key: string]: string;
-};

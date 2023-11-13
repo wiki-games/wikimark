@@ -6,6 +6,7 @@ import {
   CodeBlockNode,
   DocumentNode,
   HeaderNode,
+  ImageNode,
   ItalicNode,
   LinkNode,
   ListItemNode,
@@ -557,9 +558,82 @@ describe("Templates", () => {
 
   test("Template inside template", () => {
     expect(parse("{{abc|{{def}} }}", "")).toEqual(
-      SingleParagraph(Template("abc", [Arg(null, [Template("def"), Text(" ")])]))
-    )
-  })
+      SingleParagraph(
+        Template("abc", [Arg(null, [Template("def"), Text(" ")])])
+      )
+    );
+  });
+});
+
+describe("Images", () => {
+  test("Simple image", () => {
+    expect(parse("[[File:logo.svg]]")).toEqual(
+      SingleParagraph(Image("logo.svg"))
+    );
+    expect(parse("[[Image:new logo.png]]")).toEqual(
+      SingleParagraph(Image("new logo.png"))
+    );
+  });
+
+  test("Image with caption", () => {
+    expect(parse("[[File:wiki.png|thumb|Wikipedia logo]]")).toEqual(
+      SingleParagraph(
+        Image("wiki.png", { Type: "thumb" }, [Text("Wikipedia logo")])
+      )
+    );
+  });
+
+  test("Image with alt text", () => {
+    expect(parse("[[File:wiki.png|alt=Puzzle ''globe'' logo]]")).toEqual(
+      SingleParagraph(Image("wiki.png", { Alt: "Puzzle globe logo" }))
+    );
+  });
+
+  test("Image with link", () => {
+    expect(parse("[[File:wiki.png|link=Wikipedia]]")).toEqual(
+      SingleParagraph(Image("wiki.png", { Link: "Wikipedia" }))
+    );
+  });
+
+  test("Various properties", () => {
+    expect(
+      parse("[[File:wiki.png|frame|centre|alt=Puzzle globe|Wikipedia logo]]")
+    ).toEqual(
+      SingleParagraph(
+        Image(
+          "wiki.png",
+          { Type: "frame", HAlign: "center", Alt: "Puzzle globe" },
+          [Text("Wikipedia logo")]
+        )
+      )
+    );
+  });
+
+  test("Various properties 2", () => {
+    expect(parse("[[File:wiki.png|thumb|left|50 px|Wikipedia logo]]")).toEqual(
+      SingleParagraph(
+        Image("wiki.png", { Type: "thumb", HAlign: "left", Size: "width=50" }, [
+          Text("Wikipedia logo"),
+        ])
+      )
+    );
+  });
+
+  test("Image with fixed height", () => {
+    expect(parse("[[File:image.png|x 32px|Some image]]")).toEqual(
+      SingleParagraph(
+        Image("image.png", { Size: "height=32" }, [Text("Some image")])
+      )
+    );
+  });
+
+  test("Image with max width+height", () => {
+    expect(parse("[[File:image.png|x 22x32 px|Some image]]")).toEqual(
+      SingleParagraph(
+        Image("image.png", { Size: "fit=22x32" }, [Text("Some image")])
+      )
+    );
+  });
 });
 
 //--------------------------------------------------------------------------------------
@@ -635,6 +709,14 @@ function Italic(
 function Link(target: string, nodes: Array<AstNode> | null = null): LinkNode {
   if (nodes === null) nodes = [];
   return new LinkNode(target, nodes);
+}
+
+function Image(
+  target: string,
+  properties?: { [key: string]: string },
+  children?: Array<AstNode>
+): ImageNode {
+  return new ImageNode(target, properties, children);
 }
 
 function LI(
