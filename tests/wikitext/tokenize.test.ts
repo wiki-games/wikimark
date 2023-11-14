@@ -397,3 +397,11 @@ describe("Templates", () => {
     ]);
   });
 });
+
+describe("Miscellaneous", () => {
+  test("Hyphens", () => {
+    expect(tokenize("------")).toEqual([
+      { type: tokens.dash, text: "------", start: [1, 1], end: [1, 7] },
+    ]);
+  });
+});

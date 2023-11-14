@@ -15,6 +15,7 @@ import {
   TemplateArgNode,
   TemplateNode,
   TextNode,
+  ThematicBreakNode,
   UnorderedListNode,
 } from "../../src/nodes.js";
 
@@ -632,6 +633,40 @@ describe("Images", () => {
       SingleParagraph(
         Image("image.png", { Size: "fit=22x32" }, [Text("Some image")])
       )
+    );
+  });
+});
+
+describe("Thematic break", () => {
+  test("Simple case", () => {
+    expect(parse("----")).toEqual(new DocumentNode([new ThematicBreakNode()]));
+  });
+
+  test("With extra whitespace", () => {
+    expect(parse("------ ")).toEqual(
+      new DocumentNode([new ThematicBreakNode()])
+    );
+  });
+
+  test("Not a break", () => {
+    expect(parse("---")).toEqual(SingleParagraph("---"));
+    expect(parse("-- -- --")).toEqual(SingleParagraph("-- -- --"));
+    expect(parse("- - - -")).toEqual(SingleParagraph("- - - -"));
+  });
+
+  test("With a comment", () => {
+    expect(parse("---- <!-- ha -->\n")).toEqual(
+      new DocumentNode([new ThematicBreakNode()])
+    );
+  });
+
+  test("Break within a paragraph", () => {
+    expect(parse("Hello,\n-----\nworld!\n")).toEqual(
+      new DocumentNode([
+        Paragraph("Hello,"),
+        new ThematicBreakNode(),
+        Paragraph("world!"),
+      ])
     );
   });
 });

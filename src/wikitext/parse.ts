@@ -14,8 +14,9 @@ import {
   TemplateNode,
   TemplateArgNode,
   ImageNode,
+  ThematicBreakNode,
 } from "../nodes.js";
-import { Code, isAlphaNum } from "../utils/codes.js";
+import { isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
@@ -292,6 +293,7 @@ class Parser {
   private parseBlockLine(parent: AstNode): boolean {
     return (
       this.parseEmptyLine(parent) ||
+      this.parseThematicBreak(parent) ||
       this.parseHeader(parent) ||
       this.parseOrderedAndUnorderedList(parent) ||
       this.parseParagraph(parent)
@@ -329,6 +331,9 @@ class Parser {
     }
     assert(node instanceof ParagraphNode);
     this.parseInline(node);
+    if (node.children.length === 0) {
+      parent.removeChild(node);
+    }
     return true;
   }
 
@@ -446,6 +451,30 @@ class Parser {
         currentParent = listItem;
       }
       this.parseInline(currentParent);
+      return true;
+    }
+    return false;
+  }
+
+  private parseThematicBreak(parent: AstNode): boolean {
+    const token0 = this.tokenAt(0);
+    if (token0?.type === tokens.dash && token0.text.length >= 4) {
+      if (parent.lastChild?.isOpen) {
+        parent.lastChild.setOpen(false);
+      }
+      const node = new ThematicBreakNode();
+      parent.addChild(node);
+      this.position++;
+      while (this.tokenAt(0)?.type === tokens.whitespace) {
+        this.position++;
+      }
+      const token1 = this.tokenAt(0);
+      if (token1 === null) {}
+      else if (token1.type === tokens.newline) {
+        this.position++;
+      } else {
+        return this.parseParagraph(parent);
+      }
       return true;
     }
     return false;

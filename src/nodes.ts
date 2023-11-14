@@ -14,6 +14,7 @@ export { ParagraphNode } from "./nodes/ParagraphNode.js";
 export { TemplateArgNode } from "./nodes/TemplateArgNode.js";
 export { TemplateNode } from "./nodes/TemplateNode.js";
 export { TextNode } from "./nodes/TextNode.js";
+export { ThematicBreakNode } from "./nodes/ThematicBreakNode.js";
 export { UnorderedListNode } from "./nodes/UnorderedListNode.js";
 
 export const nodeTypes = {
@@ -31,6 +32,7 @@ export const nodeTypes = {
   paragraph: "Paragraph",
   template: "Template",
   templateArg: "TemplateArg",
+  thematicBreak: "ThematicBreak",
   text: "Text",
   unorderedList: "UnorderedList",
 } as const;
