@@ -137,14 +137,22 @@ export abstract class AstNode {
     }
   }
 
-  removeChild(node: AstNode): void {
+  removeChild(node: AstNode): AstNode {
     assert(
       node.parent === this,
       `Cannot remove ${node}, it does not belong to ${this}`
     );
     const i = this._children.findIndex((n) => n === node);
-    this._children.splice(i, 1);
+    return this.removeChildAtIndex(i);
+  }
+
+  removeChildAtIndex(i: number): AstNode {
+    assert(i >= 0 && i < this._children.length);
+    const removed = this._children.splice(i, 1);
+    assert(removed.length === 1);
+    const node = removed[0];
     node._parent = null;
+    return node;
   }
 
   removeAllChildren(): Array<AstNode> {
@@ -158,9 +166,15 @@ export abstract class AstNode {
 
   replaceChild(nodeOld: AstNode, nodeNew: AstNode): void {
     const i = this._children.findIndex((p) => p === nodeOld);
-    if (i !== -1) {
-      this._children[i] = nodeNew;
-    }
+    this.replaceChildAtIndex(i, nodeNew);
+  }
+
+  replaceChildAtIndex(i: number, nodeNew: AstNode): void {
+    assert(i >= 0 && i < this._children.length);
+    const nodeOld = this._children[i];
+    this._children[i] = nodeNew;
+    nodeNew._parent = this;
+    nodeOld._parent = null;
   }
 
   addSiblingBefore(node: AstNode): void {

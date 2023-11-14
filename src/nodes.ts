@@ -4,6 +4,7 @@ export { CodeBlockNode } from "./nodes/CodeBlockNode.js";
 export { CommentNode } from "./nodes/CommentNode.js";
 export { DocumentNode } from "./nodes/DocumentNode.js";
 export { HeaderNode } from "./nodes/HeaderNode.js";
+export { HtmlElementNode } from "./nodes/HtmlElementNode.js";
 export { ImageNode } from "./nodes/ImageNode.js";
 export { ItalicNode } from "./nodes/ItalicNode.js";
 export { LinkDefinitionNode } from "./nodes/LinkDefinitionNode.js";
@@ -23,6 +24,7 @@ export const nodeTypes = {
   comment: "Comment",
   document: "Document",
   header: "Header",
+  htmlElement: "HtmlElement",
   image: "Image",
   italic: "Italic",
   link: "Link",

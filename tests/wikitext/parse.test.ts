@@ -6,6 +6,7 @@ import {
   CodeBlockNode,
   DocumentNode,
   HeaderNode,
+  HtmlElementNode,
   ImageNode,
   ItalicNode,
   LinkNode,
@@ -159,7 +160,7 @@ describe("Headers", () => {
     );
   });
 
-  test.fails("Header with <pre>", () => {
+  test("Header with <pre>", () => {
     expect(parse("== Header <pre>\nhohoho\n</pre> ==", "")).toEqual(
       SingleHeader(2, [Text("Header "), new CodeBlockNode("\nhohoho\n")])
     );
@@ -671,6 +672,72 @@ describe("Thematic break", () => {
   });
 });
 
+describe("Html Tags", () => {
+  test("Simple tag", () => {
+    expect(parse("<span>Hello</span>, world")).toEqual(
+      SingleParagraph([HTML("span", {}, [Text("Hello")]), Text(", world")])
+    );
+  });
+
+  test("<hr>", () => {
+    expect(parse("<hr>then</hr>")).toEqual(
+      SingleParagraph([new ThematicBreakNode(), Text("then")])
+    );
+  });
+
+  test("<h1> ... <h6>", () => {
+    expect(parse("<h1>one</h1>")).toEqual(SingleParagraph(Header(1, "one")));
+    expect(parse("<h2>two</h2>")).toEqual(SingleParagraph(Header(2, "two")));
+    expect(parse("<h3>tri</h3>")).toEqual(SingleParagraph(Header(3, "tri")));
+    expect(parse("<h4>four</h4>")).toEqual(SingleParagraph(Header(4, "four")));
+    expect(parse("<h5>five</h5>")).toEqual(SingleParagraph(Header(5, "five")));
+    expect(parse("<h6>six</h6>")).toEqual(SingleParagraph(Header(6, "six")));
+  });
+
+  test("Tag with attributes", () => {
+    expect(parse('<mark style="background:yellow;">HyperText</mark>')).toEqual(
+      SingleParagraph(
+        HTML("mark", { style: "background:yellow;" }, [Text("HyperText")])
+      )
+    );
+  });
+
+  test("<syntaxhighlight>", () => {
+    expect(
+      parse(
+        "<syntaxhighlight lang = cpp>\n" +
+          'std::cout << "Hello, world!" << std::endl;\n' +
+          "</syntaxhighlight>"
+      )
+    ).toEqual(
+      SingleParagraph(
+        new CodeBlockNode(
+          '\nstd::cout << "Hello, world!" << std::endl;\n',
+          "cpp"
+        )
+      )
+    );
+  });
+
+  test("Nested tags", () => {
+    expect(parse("<b>alpha, <i>beta</i>, gamma</b>, delta")).toEqual(
+      SingleParagraph([
+        Bold([Text("alpha, "), Italic("beta"), Text(", gamma")]),
+        Text(", delta"),
+      ])
+    );
+  });
+
+  test("Unclosed tags", () => {
+    expect(parse("Alpha, <b>beta, <i>bravo\n\nCharlie</i>")).toEqual(
+      new DocumentNode([
+        Paragraph([Text("Alpha, "), Bold([Text("beta, "), Italic("bravo")])]),
+        Paragraph([Text("Charlie")]),
+      ])
+    );
+  });
+});
+
 //--------------------------------------------------------------------------------------
 // Helper functions
 //--------------------------------------------------------------------------------------
@@ -773,4 +840,12 @@ function Arg(
 ): TemplateArgNode {
   if (nodes instanceof AstNode) nodes = [nodes];
   return new TemplateArgNode(name, nodes);
+}
+
+function HTML(
+  tag: string,
+  attrs?: { [key: string]: string },
+  children?: Array<AstNode>
+): AstNode {
+  return new HtmlElementNode(tag, attrs, children);
 }

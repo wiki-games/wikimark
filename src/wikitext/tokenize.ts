@@ -552,7 +552,12 @@ class Lexer {
       i--;
     }
     const tag = this.tokens[i].text.toLowerCase();
-    if (tag === "pre" || tag === "syntaxhighlight") {
+    if (
+      tag === "pre" ||
+      tag === "syntaxhighlight" ||
+      tag === "gallery" ||
+      tag == "source"
+    ) {
       this.pushMode(this.mode_raw);
       this.expectClosingTag = tag;
     }

@@ -15,8 +15,10 @@ import {
   TemplateArgNode,
   ImageNode,
   ThematicBreakNode,
+  HtmlElementNode,
+  CodeBlockNode,
 } from "../nodes.js";
-import { isAlphaNum } from "../utils/codes.js";
+import { codes, isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
 import { Token, reprToken, tokens } from "./tokens.js";
 import { ok as assert } from "devlop";
@@ -37,7 +39,7 @@ class Parser {
 
   private tokens: Array<Token>;
   private position: number;
-  private biDelimiters: Array<BINode>;
+  private biDelimiters: Array<_BINode>;
   private page_title: string;
 
   parse(): DocumentNode {
@@ -53,6 +55,7 @@ class Parser {
       );
     }
     root.setOpen(false);
+    this.convertHtmlTagsToNodes(root);
     return root;
   }
 
@@ -131,7 +134,7 @@ class Parser {
    * If the name is invalid, returns `null`.
    */
   private parseTemplateName(): string | null {
-    this.skipTemplateWhitespace();
+    this.skipWhitespaceAndNewlines();
     let text = "";
     let done = false;
     while (!done) {
@@ -165,7 +168,7 @@ class Parser {
       }
       this.position++;
     }
-    this.skipTemplateWhitespace();
+    this.skipWhitespaceAndNewlines();
     const token1 = this.tokenAt(0);
     if (token1 !== null) {
       const type = token1.type;
@@ -190,7 +193,7 @@ class Parser {
    */
   private parseTemplateOrImageArgName(): string | null {
     const pos0 = this.position;
-    this.skipTemplateWhitespace();
+    this.skipWhitespaceAndNewlines();
     let text = "";
     let done = false;
     while (!done) {
@@ -226,7 +229,7 @@ class Parser {
       }
       this.position++;
     }
-    this.skipTemplateWhitespace();
+    this.skipWhitespaceAndNewlines();
     const token1 = this.tokenAt(0);
     if (token1 !== null) {
       if (token1.type === tokens.equalSignsRun && token1.text.length == 1) {
@@ -243,7 +246,7 @@ class Parser {
 
   private parseTemplateArgValue(): Array<Token> {
     const out: Array<Token> = [];
-    this.skipTemplateWhitespace();
+    this.skipWhitespaceAndNewlines();
     while (true) {
       const token0 = this.tokenAt(0);
       if (token0 === null) break;
@@ -266,7 +269,7 @@ class Parser {
     return out;
   }
 
-  private skipTemplateWhitespace(): void {
+  private skipWhitespaceAndNewlines(): void {
     while (true) {
       const token0 = this.tokenAt(0);
       if (token0 === null) break;
@@ -469,8 +472,8 @@ class Parser {
         this.position++;
       }
       const token1 = this.tokenAt(0);
-      if (token1 === null) {}
-      else if (token1.type === tokens.newline) {
+      if (token1 === null) {
+      } else if (token1.type === tokens.newline) {
         this.position++;
       } else {
         return this.parseParagraph(parent);
@@ -505,6 +508,7 @@ class Parser {
       }
       const ok =
         this.parseTemplateToken(root, token0) ||
+        this.parseHtmlTag(root, token0) ||
         this.parseBoldOrInlineDelimiters(root, token0) ||
         this.parseInternalLink(root, token0) ||
         this.parseExternalLink(root, token0) ||
@@ -540,26 +544,26 @@ class Parser {
   private addItalicDelimiter(parent: AstNode): void {
     const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "" || sig === "b") {
-      const node = new BINode("i");
+      const node = new _BINode("i");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
     if (sig === "i" || sig === "bi") {
-      parent.addChild(new BINode("/i"));
+      parent.addChild(new _BINode("/i"));
       this.biDelimiters.pop();
     }
     if (sig === "s") {
       const prev = this.biDelimiters[0];
       prev.kind = "b";
-      prev.addSiblingAfter(new BINode("i"));
-      parent.addChild(new BINode("/i"));
+      prev.addSiblingAfter(new _BINode("i"));
+      parent.addChild(new _BINode("/i"));
     }
     if (sig === "ib") {
       this.biDelimiters.pop();
       this.biDelimiters.pop();
-      parent.addChild(new BINode("/b"));
-      parent.addChild(new BINode("/i"));
-      const node = new BINode("b");
+      parent.addChild(new _BINode("/b"));
+      parent.addChild(new _BINode("/i"));
+      const node = new _BINode("b");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
@@ -568,26 +572,26 @@ class Parser {
   private addBoldDelimiter(parent: AstNode): void {
     const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "" || sig === "i") {
-      const node = new BINode("b");
+      const node = new _BINode("b");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
     if (sig === "b" || sig === "ib") {
-      parent.addChild(new BINode("/b"));
+      parent.addChild(new _BINode("/b"));
       this.biDelimiters.pop();
     }
     if (sig === "s") {
       const prev = this.biDelimiters[0];
       prev.kind = "i";
-      prev.addSiblingAfter(new BINode("b"));
-      parent.addChild(new BINode("/b"));
+      prev.addSiblingAfter(new _BINode("b"));
+      parent.addChild(new _BINode("/b"));
     }
     if (sig === "bi") {
-      parent.addChild(new BINode("/i"));
-      parent.addChild(new BINode("/b"));
+      parent.addChild(new _BINode("/i"));
+      parent.addChild(new _BINode("/b"));
       this.biDelimiters.pop();
       this.biDelimiters.pop();
-      const node = new BINode("i");
+      const node = new _BINode("i");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
@@ -596,40 +600,40 @@ class Parser {
   private addStrongDelimiter(parent: AstNode): void {
     const sig = this.biDelimiters.map((v) => v.kind).join("");
     if (sig === "") {
-      const node = new BINode("s");
+      const node = new _BINode("s");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
     if (sig === "i") {
-      parent.addChild(new BINode("/i"));
+      parent.addChild(new _BINode("/i"));
       this.biDelimiters.pop();
-      const node = new BINode("b");
+      const node = new _BINode("b");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
     if (sig === "b") {
-      parent.addChild(new BINode("/b"));
+      parent.addChild(new _BINode("/b"));
       this.biDelimiters.pop();
-      const node = new BINode("i");
+      const node = new _BINode("i");
       parent.addChild(node);
       this.biDelimiters.push(node);
     }
     if (sig === "s") {
       const prev = this.biDelimiters.pop()!;
       prev.kind = "b";
-      prev.addSiblingAfter(new BINode("i"));
-      parent.addChild(new BINode("/i"));
-      parent.addChild(new BINode("/b"));
+      prev.addSiblingAfter(new _BINode("i"));
+      parent.addChild(new _BINode("/i"));
+      parent.addChild(new _BINode("/b"));
     }
     if (sig === "bi") {
-      parent.addChild(new BINode("/i"));
-      parent.addChild(new BINode("/b"));
+      parent.addChild(new _BINode("/i"));
+      parent.addChild(new _BINode("/b"));
       this.biDelimiters.pop();
       this.biDelimiters.pop();
     }
     if (sig === "ib") {
-      parent.addChild(new BINode("/b"));
-      parent.addChild(new BINode("/i"));
+      parent.addChild(new _BINode("/b"));
+      parent.addChild(new _BINode("/i"));
       this.biDelimiters.pop();
       this.biDelimiters.pop();
     }
@@ -657,7 +661,7 @@ class Parser {
     const root = new ContainerNode();
     let current = root;
     for (const node of nodes) {
-      if (node instanceof BINode) {
+      if (node instanceof _BINode) {
         if (node.kind === "b" || node.kind === "i") {
           const newNode = node.kind === "b" ? new BoldNode() : new ItalicNode();
           current.addChild(newNode);
@@ -884,12 +888,12 @@ class Parser {
         image.properties.set("Size", "height=" + match[1]);
       } else if (/^x\s*\d+\s*x\s*\d+\s*px/.test(argName)) {
         const match = argName.match(/^x\s*(\d+)\s*x\s*(\d+)\s*px/)!;
-        image.properties.set("Size", "fit=" + match[1] + 'x' + match[2]);
+        image.properties.set("Size", "fit=" + match[1] + "x" + match[2]);
       } else if (argName === "alt") {
         image.properties.set("Alt", argValue);
       } else if (argName === "class") {
         image.properties.set("Class", argValue);
-      } else if (argName === "page")  {
+      } else if (argName === "page") {
         image.properties.set("Page", argValue);
       } else {
         // unknown image property, ignore
@@ -900,7 +904,7 @@ class Parser {
 
   private parseImageArgValue(): Array<Token> {
     const out: Array<Token> = [];
-    this.skipTemplateWhitespace();
+    this.skipWhitespaceAndNewlines();
     while (true) {
       const token0 = this.tokenAt(0);
       if (token0 === null) break;
@@ -1024,6 +1028,149 @@ class Parser {
     return true;
   }
 
+  private parseHtmlTag(parent: AstNode, token0: Token): boolean {
+    const pos0 = this.position;
+    if (token0.type === tokens.htmlTagStart) {
+      assert(token0.text === "<" || token0.text === "</");
+      const token1 = this.tokenAt(1);
+      assert(token1?.type === tokens.htmlTagName);
+      const htmlTagNode = new _HtmlTagNode(token1!.text);
+      if (token0.text === "</") {
+        htmlTagNode.kind = "closing";
+      }
+      this.position += 2;
+      let done = false;
+      while (!done) {
+        const token2 = this.tokenAt(0);
+        if (token2 === null) break;
+        this.position++;
+        if (token2.type === tokens.htmlTagEnd) {
+          if (token2.text === "/>") {
+            if (htmlTagNode.kind === "closing") break;
+            htmlTagNode.kind = "self-closing";
+          }
+          done = true;
+        }
+        if (token2.type === tokens.htmlBareWord) {
+          const argName = token2.text;
+          this.skipWhitespaceAndNewlines();
+          const token3 = this.tokenAt(0)!;
+          if (token3.type === tokens.equal) {
+            this.position++;
+            this.skipWhitespaceAndNewlines();
+            const token4 = this.tokenAt(0)!;
+            if (token4.type === tokens.htmlBareWord) {
+              htmlTagNode.attrs.set(argName, token4.text);
+              this.position++;
+            } else if (token4.type === tokens.htmlQuotedString) {
+              htmlTagNode.attrs.set(
+                argName,
+                token4.text.substring(1, token4.text.length - 1)
+              );
+              this.position++;
+            } else {
+              htmlTagNode.attrs.set(argName, argName);
+            }
+          } else {
+            htmlTagNode.attrs.set(argName, argName);
+          }
+        }
+      }
+      if (done) {
+        parent.addChild(htmlTagNode);
+        return true;
+      }
+      this.position = pos0;
+    }
+    return false;
+  }
+
+  private convertHtmlTagsToNodes(parent: AstNode): void {
+    const stack: Array<[string, AstNode]> = [];
+    const nodes = parent.children;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node instanceof _HtmlTagNode) {
+        if (node.kind === "closing") {
+          parent.removeChildAtIndex(i);
+          i--;
+          if (stack.length > 0 && stack[stack.length - 1][0] === node.name) {
+            const removed = stack.pop()!;
+            this.postProcessHtmlElement(removed[1]);
+          }
+        } else {
+          const tagName = node.name.toLowerCase();
+          let newNode: AstNode;
+          let pushToStack = node.kind === "opening";
+          switch (tagName) {
+            case "b":
+              newNode = new BoldNode();
+              break;
+            case "i":
+              newNode = new ItalicNode();
+              break;
+            case "hr":
+              newNode = new ThematicBreakNode();
+              pushToStack = false;
+              break;
+            case "h1":
+            case "h2":
+            case "h3":
+            case "h4":
+            case "h5":
+            case "h6":
+              const level = tagName.codePointAt(1)! - codes.digit0;
+              newNode = new HeaderNode(level);
+              break;
+            case "syntaxhighlight":
+            case "source":
+            case "pre": {
+              const codeBlock = new CodeBlockNode("");
+              if (node.attrs.has("lang")) {
+                codeBlock.language = node.attrs.get("lang")!;
+              }
+              if (i + 1 < nodes.length && nodes[i + 1] instanceof TextNode) {
+                codeBlock.text = (nodes[i + 1] as TextNode).text;
+                parent.removeChildAtIndex(i + 1);
+              }
+              newNode = codeBlock;
+              break;
+            }
+            default:
+              newNode = new HtmlElementNode(tagName, node.attrs);
+              break;
+          }
+          if (stack.length > 0) {
+            parent.removeChildAtIndex(i);
+            stack[stack.length - 1][1].addChild(newNode);
+            i--;
+          } else {
+            parent.replaceChildAtIndex(i, newNode);
+          }
+          if (pushToStack) {
+            stack.push([tagName, newNode]);
+          }
+        }
+      } else if (stack.length > 0) {
+        parent.removeChildAtIndex(i);
+        stack[stack.length - 1][1].addChild(node);
+        i--;
+      }
+      if (node.children.length > 0) {
+        this.convertHtmlTagsToNodes(node);
+      }
+    }
+    // Close any HTML elements that remain open
+    while (stack.length > 0) {
+      const removed = stack.pop()!;
+      this.postProcessHtmlElement(removed[1]);
+    }
+  }
+
+  private postProcessHtmlElement(node: AstNode): void {
+    unused(node);
+  }
+
   //------------------------------------------------------------------------------------
   // Helpers
   //------------------------------------------------------------------------------------
@@ -1066,13 +1213,26 @@ class ContainerNode extends AstNode {
   }
 }
 
-class BINode extends AstNode {
+class _BINode extends AstNode {
   constructor(kind: "b" | "i" | "s" | "/b" | "/i" | "/s") {
     super("_BI");
     this.kind = kind;
     this.isInline = true;
   }
   public kind: string;
+}
+
+class _HtmlTagNode extends AstNode {
+  constructor(name: string) {
+    super("_HtmlTag");
+    this.name = name;
+    this.kind = "opening";
+    this.attrs = new Map();
+  }
+
+  public name: string;
+  public kind: "opening" | "closing" | "self-closing";
+  public attrs: Map<string, string>;
 }
 
 const TEMPLATE_REPLACEMENTS = new Map<string, string>([
