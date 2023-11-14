@@ -10,24 +10,13 @@ export class BoldNode extends AstNode {
   constructor(children?: Array<AstNode>) {
     super(nodeTypes.bold, children);
     this.isInline = true;
-    this.useFancyDelimiters = false;
   }
 
-  /**
-   * Whether to render the node with the plain delimiters (`*text*`), or "fancy" ones
-   * (`{*text*}`).
-   */
-  public useFancyDelimiters: boolean;
-
   override _writeWikimark(out: WikimarkWriter): void {
-    if (this.useFancyDelimiters) {
-      out.writeChar(codes.braceLeft);
-    }
+    out.writeChar(codes.braceLeft);
     out.writeChar(codes.asterisk);
     super._writeWikimark(out);
     out.writeChar(codes.asterisk);
-    if (this.useFancyDelimiters) {
-      out.writeChar(codes.braceRight);
-    }
+    out.writeChar(codes.braceRight);
   }
 }

@@ -32,41 +32,7 @@ these cases should not be considered canonical, and in fact may change at any ti
 
 ### Bold text
 
-A text between two asterisks will be rendered as **bold**:
-
-| wikimark      | renders as    |
-|---------------|---------------|
-| `*bold text*` | **bold text** |
-
-The restriction on this rule is that the opening asterisk must be preceded by a
-whitespace and not followed by a whitespace; while the closing asterisk must be followed
-by a whitespace but not preceded by a whitespace (here whitespace means a space
-character, or a start / end of a line).
-
-These rules imply that if an asterisk is surrounded by whitespace on both sides, or if
-it it has non-space characters on both sides, then such asterisk is treated literally
-and does not create a bold sequence:
-
-| wikimark                      | renders as                   |
-|-------------------------------|------------------------------|
-| `not a * bold te*xt`          | not a \* bold te*xt          |
-| `force = mass * acceletation` | force = mass * acceleration  |
-| `(3 + 6)*11 - 2`              | (3 + 6)*11 - 2               |
-
-At the same time, it is a syntax error to have an opening bold syntax without closing
-it. If such an asterisk needs to be treated literally, then it must be escaped:
-
-| wikimark          | renders as       |
-|-------------------|------------------|
-| `*is this bold?`  | ERROR            |
-| `*o*ne letter`    | ERROR            |
-| `\*this is ok`    | *this is ok      |
-| `this is ok too*` | this is ok too*  |
-| `**`              | ERROR            |
-
-An alternative way of demarcating a bold sequence is to use the `{*`, `*}` delimiters.
-These do not have same restrictions as plain asterisks, and can be used inside a word,
-or be nested:
+A text between `{*` and `*}` will be rendered as **bold**:
 
 | wikimark               | renders as             |
 |------------------------|------------------------|
@@ -74,47 +40,27 @@ or be nested:
 | `{*f*}irst letter`     | **f**irst letter       |
 | `{* nested {*bold*}*}` | **&nbsp;nested bold**  |
 
+At the same time, it is a syntax error to have an opening `{*` without closing it, and
+similarly if there is a closing `*}` without opening it first.
+
+| wikimark          | renders as       |
+|-------------------|------------------|
+| `{*is this bold?` | ERROR            |
+| `also not bold*}` | ERROR            |
+| `\{*this is ok`   | {*this is ok     |
+
 
 ### Italic text
 
-Text surrounded with slashes `/` will be rendered as italic:
-
-| wikimark        | renders as    |
-|-----------------|---------------|
-| `/italic text/` | *italic text* |
-
-Similar to the rules for bold text, the first `/` must be preceded but not followed by
-whitespace, and the last `/` must be followed but not preceded by whitespace. Empty
-italic sequence is also not allowed:
-
-| wikimark          | renders as  |
-|-------------------|-------------|
-| `A / B / C`       | A / B / C   |
-| `π ≈ 22/7`        | π ≈ 22/7    |
-| `this is/ ok`     | this is/ ok |
-| `this is /not ok` | ERROR       |
-| `//`              | ERROR       |
-
-An italic text can also be marked up using the `{/`, `/}` delimiters. These have less
-restrictions compared to plain `/` characters:
+Text surrounded with slashes `{/` and `/}` will be rendered as italic:
 
 | wikimark                 | renders as      |
 |--------------------------|-----------------|
-| `{/ italic /}`           | *&nbsp;italic*  |
+| `{/italic/}`             | *italic*        |
 | `{/F/}irst letter`       | *F*irst letter  |
 | `{/nested {/italic/}/}`  | *nested italic* |
 | `{/this is not ok`       | ERROR           |
 | `{/this {*is not/} ok*}` | ERROR           |
-
-When you want to apply both bold and italic style to the same word, prefer to have the
-bold outside and the italic inside, not the other way around:
-
-| wikimark              | renders as            |
-|-----------------------|-----------------------|
-| `*/GOOD/*`            | ***GOOD***            |
-| `/*not recommended*/` | ***not recommended*** |
-| `{/{*ALSO GOOD*}/}`   | ***ALSO GOOD***       |
-| `{*{/ALSO GOOD/}*}`   | ***ALSO GOOD***       |
 
 
 ### Higlight/insert/delete
@@ -143,10 +89,9 @@ is rendered in superscript:
 
 ### Verbatim text
 
-A text surrounded with backticks <code>\`</code>, or with <code>{\`</code> /
-<code>\`}</code> pairs, is considered **verbatim** ("code"). Such text is rendered in
-a monospace font, and not processed for any further Wikimark syntax -- not even
-backslash-escaping.
+A text surrounded with backticks `` ` ``, or with ``{` `` / `` `}`` pairs, is
+considered **verbatim** ("code"). Such text is rendered in a monospace font, and not
+processed for any further Wikimark syntax -- not even backslash-escaping.
 
 | wikimark               | renders as         |
 |------------------------|--------------------|

@@ -95,7 +95,6 @@ export class WikimarkWriter {
 }
 
 const CODES_TO_ESCAPE = new Set<Code>([
-  codes.asterisk,
   codes.backslash,
   codes.backtick,
   codes.braceLeft,

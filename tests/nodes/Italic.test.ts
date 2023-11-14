@@ -21,7 +21,7 @@ test("Simple italic", () => {
       "",
     ].join("\n")
   );
-  expect(ast.toWikimark()).toBe("\n/This text is italic/\n");
+  expect(ast.toWikimark()).toBe("\n{/This text is italic/}\n");
 });
 
 test("Italic and loose stars", () => {
@@ -50,9 +50,9 @@ test("Italic and loose stars", () => {
   expect(ast.toWikimark()).toBe(
     [
       "",
-      "## /Italic header/",
+      "## {/Italic header/}",
       "",
-      "Normal text (with \\*s) /ita\\*lic/ more text",
+      "Normal text (with *s) {/ita*lic/} more text",
       "",
     ].join("\n")
   );
