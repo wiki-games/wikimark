@@ -13,6 +13,8 @@ import {
   ListItemNode,
   OrderedListNode,
   ParagraphNode,
+  SubscriptNode,
+  SuperscriptNode,
   TemplateArgNode,
   TemplateNode,
   TextNode,
@@ -692,6 +694,22 @@ describe("Html Tags", () => {
     expect(parse("<h4>four</h4>")).toEqual(SingleParagraph(Header(4, "four")));
     expect(parse("<h5>five</h5>")).toEqual(SingleParagraph(Header(5, "five")));
     expect(parse("<h6>six</h6>")).toEqual(SingleParagraph(Header(6, "six")));
+  });
+
+  test("<i>/<b>", () => {
+    expect(parse("<i>one</i>")).toEqual(SingleParagraph(Italic("one")));
+    expect(parse("<em>one</em>")).toEqual(SingleParagraph(Italic("one")));
+    expect(parse("<b>one</b>")).toEqual(SingleParagraph(Bold("one")));
+    expect(parse("<strong>one</strong>")).toEqual(SingleParagraph(Bold("one")));
+  });
+
+  test("<sup>/<sub>", () => {
+    expect(parse("<sub>one</sub>")).toEqual(
+      SingleParagraph(new SubscriptNode([Text("one")]))
+    );
+    expect(parse("<sup>one</sup>")).toEqual(
+      SingleParagraph(new SuperscriptNode([Text("one")]))
+    );
   });
 
   test("Tag with attributes", () => {

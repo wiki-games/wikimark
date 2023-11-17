@@ -37,7 +37,7 @@ export class WikimarkWriter {
     this._codes.push(code);
   }
 
-  writeAll(codes: Array<Code>): void {
+  writeChars(codes: Array<Code>): void {
     assert(codes.every((code) => code >= 0x20));
     this._handleStartOfLine();
     this._codes.push(...codes);

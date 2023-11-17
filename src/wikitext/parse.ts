@@ -17,6 +17,8 @@ import {
   ThematicBreakNode,
   HtmlElementNode,
   CodeBlockNode,
+  SuperscriptNode,
+  SubscriptNode,
 } from "../nodes.js";
 import { codes, isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
@@ -1104,10 +1106,18 @@ class Parser {
           let pushToStack = node.kind === "opening";
           switch (tagName) {
             case "b":
+            case "strong":
               newNode = new BoldNode();
               break;
             case "i":
+            case "em":
               newNode = new ItalicNode();
+              break;
+            case "sup":
+              newNode = new SuperscriptNode();
+              break;
+            case "sub":
+              newNode = new SubscriptNode();
               break;
             case "hr":
               newNode = new ThematicBreakNode();

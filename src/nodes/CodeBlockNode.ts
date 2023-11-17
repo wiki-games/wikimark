@@ -15,8 +15,8 @@ export class CodeBlockNode extends AstNode {
   public language: string | null;
 
   override _writeWikimark(out: WikimarkWriter): void {
-    out.writeAll([codes.backtick, codes.backtick, codes.backtick]);
+    out.writeChars([codes.backtick, codes.backtick, codes.backtick]);
     out.writeText(this.text);
-    out.writeAll([codes.backtick, codes.backtick, codes.backtick]);
+    out.writeChars([codes.backtick, codes.backtick, codes.backtick]);
   }
 }

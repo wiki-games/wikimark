@@ -3,7 +3,7 @@
 The **Wikimark** language is designed for authoring wiki content. It is an evolution of
 the [Wikitext] that powers Wikipedia, and [Markdown][Commonmark], which is the lingua
 franca for writing documentation. Many of Wikimark's features were further inspired by
-[Djot].
+[Djot], a popular Markdown's successor.
 
 [Wikitext]: https://en.wikipedia.org/wiki/Help:Wikitext
 [Commonmark]: https://spec.commonmark.org/0.30/
