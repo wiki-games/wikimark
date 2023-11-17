@@ -1,9 +1,16 @@
 # Wikimark
 
 The **Wikimark** language is designed for authoring wiki content. It is an evolution of
-the [Wikitext] language that powers Wikipedia, and [Markdown][Commonmark], which is the
-lingua franca for writing documentation. Many of Wikimark's features were further
-inspired by [Djot].
+the [Wikitext] that powers Wikipedia, and [Markdown][Commonmark], which is the lingua
+franca for writing documentation. Many of Wikimark's features were further inspired by
+[Djot].
+
+[Wikitext]: https://en.wikipedia.org/wiki/Help:Wikitext
+[Commonmark]: https://spec.commonmark.org/0.30/
+[Djot]: https://htmlpreview.github.io/?https://github.com/jgm/djot/blob/master/doc/syntax.html
+
+
+## General principles
 
 The design of Wikimark is centered around the following principles:
 
@@ -23,9 +30,25 @@ invalid. If a parser encounters such a document in practice, it is free to deal 
 the situation in any way it wants. The behavior of the standard Wikimark parser in
 these cases should not be considered canonical, and in fact may change at any time.
 
-[Wikitext]: https://en.wikipedia.org/wiki/Help:Wikitext
-[Commonmark]: https://spec.commonmark.org/0.30/
-[Djot]: https://htmlpreview.github.io/?https://github.com/jgm/djot/blob/master/doc/syntax.html
+
+### Parsing strategy
+
+Just like any other text editing program, Wikimark distinguishes between "block" and
+"inline" content. The "inline" category includes anything that decorates the text, or
+can be inserted directly into text: various text styles, embellishments, emojis, etc.
+On the contrary, the "block" content is anything that can be confined to a box, either
+explicit or implicit: a paragraph, an infobox, a list item, etc.
+
+In Wikimark, all block syntaxes can be discerned by looking at the start of each line.
+For example, a header starts with one or more `#` signs followed by a space. Further,
+each block syntax specifies a *continuation rule*: what the next line should start with
+in order for it to be considered a part of the same block.
+
+Once all lines that belong to a block have been parsed, the prefixes that identified
+those lines are stripped, and the remaining lines are processed according to the rules
+of that particular block: a paragraph or a header will parse the text using "inline"
+rules, a code block may use a syntax highlighter, a list item or a block quote will
+parse for nested block content.
 
 
 ## Text decoration
@@ -102,7 +125,7 @@ processed for any further Wikimark syntax -- not even backslash-escaping.
 ### Hard line break
 
 A backslash at the end of a line (before the newline) indicates a "hard break", which
-corresponds to `<br/>` element in HTML.
+corresponds to the `<br/>` element in HTML.
 
 <table>
 <tr><th>wikitext<th>renders as</tr>
@@ -154,7 +177,7 @@ structure, it can be escaped with a backslash. All ASCII punctuation characters 
 escaped in this way, for example `\*` denotes a literal asterisk `*`, and `\@` is the
 same as `@`.
 
-Any Unicode characters may be present in the input, except characters in the following
+Any Unicode characters may be present in the input, except those in the following
 ranges: `\x00 - \x09`, `\x0B - \x1F`, and `\x7F - \x9F`.
 
 
@@ -189,9 +212,7 @@ is obtained by stripping all markup and converting the content to plain text:
 
 Note that it is invalid to have a link inside a link.
 
-If the title of the page contains symbols that may otherwise be construed as Wikimark
-markup, then those characters should be escaped. Characters `/`, `#`, and `|` are also
-considered special and should also be escaped:
+If the title of the page contains characters `/` or `#`, then they must be escaped:
 
 | wikimark            | renders as                                    |
 |---------------------|-----------------------------------------------|
@@ -210,7 +231,7 @@ text of the link will not include the `#` character:
 | `[# Super/subscript]`  | <a href="#Super-subscript">Super/subscript</a>   |
 | `[# Intra-page links]` | <a href="#Intra-page-links">Intra-page links</a> |
 
-This, the syntax for linking to a specific heading on a page is similar to the syntax
+This syntax for linking to a specific heading on a page is similar to the syntax
 for writing the heading itself -- except that we never use more than one `#` to write
 such a heading.
 
@@ -223,14 +244,14 @@ version matches the plain-text version of the heading:
 | `[# /Italic/ text]` | <a href="#Italic-text"><i>Italic</i> text</a> |
 
 It is worth noting that the text of the heading is matched in a case-sensitive matter.
-That is, `[# italic]` is not a valid link to a section named "Italic".
+That is, `[# italic]` is not a valid link for a section named "Italic".
 
 
 ### Link definitions
 
 A link which is used somewhere in the document may be given a definition at some other
-place in that document. This is done by putting the name of the link (in square
-brackets) on a separate line, followed by a colon, and then followed by the link's
+place in that document. This is done by putting the name of the link in square
+brackets on a separate line, followed by a colon, and then followed by the link's
 intended target:
 
 ```wikimark
@@ -247,8 +268,7 @@ links are used elsewhere on a page, they will use the provided targets:
 | `[this page].`       | <a href="Target page">this page</a>.               |
 
 In a Wikimark document, link definitions may appear anywhere on a page, but must be
-within their own "paragraph", separated from other content by at least one (preferably
-two) blank lines.
+within their own "paragraph", separated from other content by at least one blank line.
 
 The text of a link definition should not contain any markup (backslash-escapes can
 still be used). The actual link as used in the text may contain markup, however. The
@@ -256,9 +276,11 @@ text of a link will be matched to the link definition after the markup was strip
 Thus, `[/example/]` is also a valid link that uses the `[example]:` definition.
 
 The text of a link is matched in a case-sensitive matter. Thus, `[Example]` and
-`[example]` are two different links. When writing link definitions, if a certain link
-has no definition, then it uses the next link's definition. Thus, in the following
-example all three defintions have the same target:
+`[example]` are two different links.
+
+When writing link definitions, if a certain link has no definition, then it uses the
+next link's definition. Thus, in the following sample all three defintions have the
+same target:
 
 ```wikimark
 [Example]:
@@ -286,7 +308,8 @@ name of the page first, followed by ` # `, and then the name of the section:
 
 Link definitions may appear anywhere on a page where a paragraph is allowed. Regardless
 of their place on the page, they affect all links on the page, whether they appear
-before or after the definitions. It is an error to define a link multiple times.
+before or after the definitions. It is an error to define the same link name more than
+once.
 
 When a link is defined within a *template*, this definition only applies within that
 template and does not extend to a page that uses that template. Also, the existence of
@@ -524,7 +547,7 @@ box instead of a bullet marker. The following variants are supported:
 -[ ] An empty checkbox;
 -[*] Filled checkbox, marked with a ✓;
 -[x] Failed checkbox, marked with an ✗;
--[-] The checkbox, and the text of the list item, are crossed-out;
+-[-] The checkbox and the text of the list item are crossed-out;
 -[?] A checkbox with a question mark in it;
 -[!] A checkbox with an exclamation mark in it.
 ```
@@ -623,15 +646,15 @@ indentation is likewise removed. These lines are then processed as regular block
 content.
 
 ```wikimark
-|------------|----------|---------------|
-| Header Col | Header cell with row span|
-|============|==========|===============|
+|------------#----------|---------------|
+| Header Col # Header cell with row span|
+|============#==========|===============|
 | Row Header # Cell A   | Cell B        |
-|------------|----------|---------------|
+|------------#----------|---------------|
 | Two-row    # Cell C   | {/Italic      |
 | span.      #          | text/}        |
 |            #----------|---------------|
 | Another    # Cell D   | Cell E        |
 | paragraph. #          |               |
-|------------|----------|---------------|
+|------------#----------|---------------|
 ```
