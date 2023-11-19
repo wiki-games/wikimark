@@ -3,6 +3,7 @@ export { BoldNode } from "./nodes/BoldNode.js";
 export { CodeBlockNode } from "./nodes/CodeBlockNode.js";
 export { CommentNode } from "./nodes/CommentNode.js";
 export { DocumentNode } from "./nodes/DocumentNode.js";
+export { HardBreakNode } from "./nodes/HardBreakNode.js";
 export { HeaderNode } from "./nodes/HeaderNode.js";
 export { HtmlElementNode } from "./nodes/HtmlElementNode.js";
 export { ImageNode } from "./nodes/ImageNode.js";
@@ -25,6 +26,7 @@ export const nodeTypes = {
   codeBlock: "CodeBlock",
   comment: "Comment",
   document: "Document",
+  hardBreak: "HardBreak",
   header: "Header",
   htmlElement: "HtmlElement",
   image: "Image",
