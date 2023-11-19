@@ -13,6 +13,7 @@ export { LinkNode } from "./nodes/LinkNode.js";
 export { ListItemNode } from "./nodes/ListItemNode.js";
 export { OrderedListNode } from "./nodes/OrderedListNode.js";
 export { ParagraphNode } from "./nodes/ParagraphNode.js";
+export { ReferenceNode } from "./nodes/ReferenceNode.js";
 export { SubscriptNode } from "./nodes/SubscriptNode.js";
 export { SuperscriptNode } from "./nodes/SuperscriptNode.js";
 export { TemplateArgNode } from "./nodes/TemplateArgNode.js";
@@ -36,6 +37,7 @@ export const nodeTypes = {
   listItem: "ListItem",
   orderedList: "OrderedList",
   paragraph: "Paragraph",
+  reference: "Reference",
   subscript: "Subscript",
   superscript: "Superscript",
   template: "Template",

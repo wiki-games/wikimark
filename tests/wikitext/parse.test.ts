@@ -14,6 +14,7 @@ import {
   ListItemNode,
   OrderedListNode,
   ParagraphNode,
+  ReferenceNode,
   SubscriptNode,
   SuperscriptNode,
   TemplateArgNode,
@@ -756,6 +757,12 @@ describe("Html Tags", () => {
   test("<br>", () => {
     expect(parse("one<br>two")).toEqual(
       SingleParagraph([Text("one"), new HardBreakNode(), Text("two")])
+    );
+  });
+
+  test("<ref>", () => {
+    expect(parse("<ref>https://example.com</ref>")).toEqual(
+      SingleParagraph(new ReferenceNode([Text("https://example.com")]))
     );
   });
 

@@ -20,6 +20,7 @@ import {
   SuperscriptNode,
   SubscriptNode,
   HardBreakNode,
+  ReferenceNode,
 } from "../nodes.js";
 import { codes, isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
@@ -1123,6 +1124,9 @@ class Parser {
             case "i":
             case "em":
               newNode = new ItalicNode();
+              break;
+            case "ref":
+              newNode = new ReferenceNode();
               break;
             case "sup":
               newNode = new SuperscriptNode();
