@@ -396,6 +396,17 @@ describe("Templates", () => {
       { type: tokens.rightBraceRun, text: "}}", start: [1, 22], end: [1, 24] },
     ]);
   });
+
+  test("Adjacent templates", () => {
+    expect(tokenize("{{first}}{{second}}")).toEqual([
+      { type: tokens.leftBraceRun, text: "{{", start: [1, 1], end: [1, 3] },
+      { type: tokens.text, text: "first", start: [1, 3], end: [1, 8] },
+      { type: tokens.rightBraceRun, text: "}}", start: [1, 8], end: [1, 10] },
+      { type: tokens.leftBraceRun, text: "{{", start: [1, 10], end: [1, 12] },
+      { type: tokens.text, text: "second", start: [1, 12], end: [1, 18] },
+      { type: tokens.rightBraceRun, text: "}}", start: [1, 18], end: [1, 20] },
+    ]);
+  });
 });
 
 describe("Miscellaneous", () => {

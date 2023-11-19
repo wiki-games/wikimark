@@ -19,6 +19,7 @@ import {
   CodeBlockNode,
   SuperscriptNode,
   SubscriptNode,
+  HardBreakNode,
 } from "../nodes.js";
 import { codes, isAlphaNum } from "../utils/codes.js";
 import { tokenize } from "./tokenize.js";
@@ -87,7 +88,7 @@ class Parser {
         const template = this.parseTemplate();
         if (template !== null) {
           outTokens.push(template);
-          i = this.position;
+          i = this.position - 1; // will be incremented by the loop
           continue;
         }
       }
@@ -1118,6 +1119,10 @@ class Parser {
               break;
             case "sub":
               newNode = new SubscriptNode();
+              break;
+            case "br":
+              newNode = new HardBreakNode();
+              pushToStack = false;
               break;
             case "hr":
               newNode = new ThematicBreakNode();

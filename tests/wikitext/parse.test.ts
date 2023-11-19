@@ -5,6 +5,7 @@ import {
   BoldNode,
   CodeBlockNode,
   DocumentNode,
+  HardBreakNode,
   HeaderNode,
   HtmlElementNode,
   ImageNode,
@@ -518,7 +519,7 @@ describe("Templates", () => {
 
   test("Multi-line template", () => {
     expect(
-      parse("{{Template|\n  arg1 = value1\n | arg2\n =  value2\n}}", "")
+      parse("{{Template|\n  arg1 = value1\n | arg2\n =\n  value2\n}}", "")
     ).toEqual(
       SingleParagraph(
         Template("Template", [
@@ -566,6 +567,36 @@ describe("Templates", () => {
         Template("abc", [Arg(null, [Template("def"), Text(" ")])])
       )
     );
+  });
+
+  test("Template with a multi-line value", () => {
+    const input = `{{Infobox|row1=
+      one<br>
+      two<br>
+      three<br>
+    }}`;
+    expect(parse(input)).toEqual(
+      SingleParagraph(
+        Template("Infobox", [
+          Arg("row1", [
+            Text("one"),
+            new HardBreakNode(),
+            Text("  two"),
+            new HardBreakNode(),
+            Text("  three"),
+            new HardBreakNode(),
+          ]),
+        ])
+      )
+    );
+  });
+
+  test("Adjacent templates", () => {
+    expect(parse("{{first}}{{second}}")).toEqual(
+      SingleParagraph([
+        Template("first"), Template("second")
+      ])
+    )
   });
 });
 
@@ -709,6 +740,12 @@ describe("Html Tags", () => {
     );
     expect(parse("<sup>one</sup>")).toEqual(
       SingleParagraph(new SuperscriptNode([Text("one")]))
+    );
+  });
+
+  test("<br>", () => {
+    expect(parse("one<br>two")).toEqual(
+      SingleParagraph([Text("one"), new HardBreakNode(), Text("two")])
     );
   });
 
