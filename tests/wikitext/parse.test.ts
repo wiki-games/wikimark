@@ -593,10 +593,20 @@ describe("Templates", () => {
 
   test("Adjacent templates", () => {
     expect(parse("{{first}}{{second}}")).toEqual(
-      SingleParagraph([
-        Template("first"), Template("second")
-      ])
-    )
+      SingleParagraph([Template("first"), Template("second")])
+    );
+  });
+
+  test("Template with a link inside", () => {
+    const input = `{{Infobox|row1=[[Target|Link name]]|row2=END}}`;
+    expect(parse(input)).toEqual(
+      SingleParagraph(
+        Template("Infobox", [
+          Arg("row1", Link("Target", [Text("Link name")])),
+          Arg("row2", Text("END")),
+        ])
+      )
+    );
   });
 });
 

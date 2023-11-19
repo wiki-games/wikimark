@@ -250,14 +250,24 @@ class Parser {
   private parseTemplateArgValue(): Array<Token> {
     const out: Array<Token> = [];
     this.skipWhitespaceAndNewlines();
+    let nestedLevel = 0;
     while (true) {
       const token0 = this.tokenAt(0);
       if (token0 === null) break;
-      if (token0.type === tokens.pipe) break;
-      if (token0.type === tokens.rightBraceRun && token0.text.length === 2) {
-        break;
+      if (token0.type === tokens.pipe) {
+        if (nestedLevel <= 0) break;
       }
-      if (token0.type === tokens.leftBraceRun && token0.text.length === 2) {
+      if (token0.type === tokens.leftBracketRun) {
+        nestedLevel++;
+      }
+      if (token0.type === tokens.rightBracketRun) {
+        nestedLevel--;
+      }
+      if (token0.type === tokens.rightBraceRun && token0.text.length >= 2) {
+        if (nestedLevel <= 0) break;
+        nestedLevel--;
+      }
+      if (token0.type === tokens.leftBraceRun && token0.text.length >= 2) {
         const pos0 = this.position;
         const template = this.parseTemplate();
         if (template !== null) {
