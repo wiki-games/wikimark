@@ -37,7 +37,7 @@ Just like any other text editing program, Wikimark distinguishes between "block"
 "inline" content. The "inline" category includes anything that decorates the text, or
 can be inserted directly into text: various text styles, embellishments, emojis, etc.
 On the contrary, the "block" content is anything that can be confined to a box, either
-explicit or implicit: a paragraph, an infobox, a list item, etc.
+explicit or implicit: a paragraph, an infobox, a list item, and so on.
 
 In Wikimark, all block syntaxes can be discerned by looking at the start of each line.
 For example, a header starts with one or more `#` signs followed by a space. Further,
@@ -636,8 +636,8 @@ to be merged horizontally with the next cell. Likewise, if a row separator has o
 the boundaries missing, then it is assumed that the cell is merged vertically with a
 cell in the next row.
 
-A cell may also use `#` mark instead of a pipe `|` as a column separator. In such a
-case the cell is considered to be a row header.
+If the first cell in each row uses a double-pipe `||` as a column separator, then such
+cells are treated as row headers.
 
 Once the boundaries of all cells are determined, the content of those cells is cut out
 into a separate buffer, a single space of indentation is removed from the start of each
@@ -646,15 +646,15 @@ indentation is likewise removed. These lines are then processed as regular block
 content.
 
 ```wikimark
-|------------#----------|---------------|
-| Header Col # Header cell with row span|
-|============#==========|===============|
-| Row Header # Cell A   | Cell B        |
-|------------#----------|---------------|
-| Two-row    # Cell C   | {/Italic      |
-| span.      #          | text/}        |
-|            #----------|---------------|
-| Another    # Cell D   | Cell E        |
-| paragraph. #          |               |
-|------------#----------|---------------|
+|------------||----------|---------------------|
+| Header Col || Header cell spanning 2 columns |
+|============||==========|=====================|
+| Row Header || Cell A   | Cell B              |
+|------------||----------|---------------------|
+| Two-row    || Cell C   | {/Italic            |
+| span.      ||          | text/}              |
+|            ||----------|---------------------|
+| Another    || Cell D   | Cell E              |
+| paragraph. ||          |                     |
+|------------||----------|---------------------|
 ```
